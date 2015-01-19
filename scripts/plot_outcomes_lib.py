@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib import patches
@@ -6,11 +7,20 @@ from matplotlib.patches import Ellipse
 from itertools import combinations
 from astropy.wcs import WCS
 from wcsaxes import WCSAxes
-from astropy import units as units
+import make_table_lib as mkl
 
+dr = np.pi/180.0
+
+##Variables that get used by most of the functions here
+global closeness
+global high_prob
+global low_prob
+global chi_thresh
+global jstat_thresh
+global num_freqs
+global split
 
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
-##FOUR PLOTTING FUNCTIONS USED IN CREATE_PLOT -----------------------------------------------------------------------
 def plot_errors(style,colour,freq,flux,ferr,name,size,ax):
 	'''Plots errorbars and markers with no line'''
 	ax.errorbar(freq,flux,ferr,
@@ -115,7 +125,7 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 	prob = info[-1]
 	
 	##Fit a line using weighted least squares and plot it
-	lin_fit,jstat,bse,chi_red = fit_line(log_freqs,log_fluxs,sorted_ferrs)
+	lin_fit,jstat,bse,chi_red = mkl.fit_line(log_freqs,log_fluxs,sorted_ferrs)
 	
 	ax.text(0.5,0.925, 'P$_{%d}$=%.2f' %(ind_ax+1,float(prob)), transform=ax.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	ax.text(0.5,0.06, '$\epsilon_{%d}$=%.2f $\chi_{%d}$=%.1f' %(ind_ax+1,jstat,ind_ax+1,chi_red),
@@ -196,23 +206,16 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 		minor = info[-4]
 		PA = info[-3]
 		ID = info[-1]
-		
 		##If base catalogue, plot error and mathcing ellipses
 		if i==0:
-			
+			##Calculate the change in RA for half the user given resolution (and constant dec) using spherical trigo
 			error_RA = np.arccos((np.cos(closeness*dr)-np.sin(dec*dr)**2)/np.cos(dec*dr)**2)/dr
-			
-			###Plot an error ellipse of the base cat error + resolution
-			#ell = patches.Ellipse((ra_main,dec_main),2*(rerr+closeness),2*(derr+closeness),angle=0,
-				#transform=tr_fk5,linestyle='dashed',fc='none',lw=1.1,color='gray')
-			#ax_main.add_patch(ell)
 			
 			##Plot an error ellipse of the base cat error + resolution
 			ell = patches.Ellipse((ra_main,dec_main),2*(rerr+error_RA),2*(derr+closeness),angle=0,
 				transform=tr_fk5,linestyle='dashed',fc='none',lw=1.1,color='gray')
 			ax_main.add_patch(ell)
-			
-			###Plot a circle of the match radius
+			##Plot a circle of the match radius
 			ell = patches.Ellipse((ra_main,dec_main),2*delta_RA,4*(closeness),angle=0,
 				transform=tr_fk5,linestyle='dashdot',fc='none',lw=1.1,color='k')
 			ax_main.add_patch(ell)
@@ -261,7 +264,7 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	dec_ax = ax_main.coords[1]
 	ra_ax.set_axislabel('RAJ2000')
 	dec_ax.set_axislabel('DECJ2000')
-	ra_ax.set_major_formatter('hh:mm:ss')#,font='Computer Modern Typewriter')
+	ra_ax.set_major_formatter('hh:mm:ss')
 	dec_ax.set_major_formatter('dd:mm:ss')
 	
 	##Convert axes limits to ax_main wcs, and apply
@@ -272,11 +275,6 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	ax_main.set_ylim(dec_low[1],dec_high[1])
 	ax_main.set_xlim(ra_high[0],ra_low[0])
 
-	###Add a grid with spacing of an arcmin
-	#ra_ax.set_ticks(spacing=1 * units.arcmin)
-	#dec_ax.set_ticks(spacing=1 * units.arcmin)
-	#g = ax_main.coords.grid(linewidth=1.0,alpha=0.2)
-	
 	##Make the labels on ax_spectral print in MHz and Jy
 	max_lflux = np.log(max(all_fluxs))
 	min_lflux = np.log(min(all_fluxs))
@@ -357,8 +355,9 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	##Find the limits out to search area - have to do each edge individual,
 	##because of the arcdistance projection malarky
-	##Even at the same dec, 3 arcmins apart in RA doesn't translate to 3arcmin arcdist - prpjection
-	##fun. Can use law of cosines on a sphere to work out appropriate delta RA:
+	##Even at the same dec, 3 arcmins apart in RA doesn't translate to 3arcmin arcdist - projection
+	##fun. Can use law of cosines on a sphere to work out appropriate delta RA. Use this to define plot
+	##limits for a nice looking plot
 	
 	delta_RA = np.arccos((np.cos((2*closeness)*dr)-np.sin(dec_main*dr)**2)/np.cos(dec_main*dr)**2)/dr
 	
@@ -392,7 +391,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	#===========================================================#
 	##Plot the matching criteria information
 	match1 = matches[0].split()
-	src_g = get_srcg(match1)
+	src_g = mkl.get_srcg(match1)
 	
 	text_axes = fig.add_axes([0.39,0.5,0.125,0.35])
 	text_axes.axis('off')
@@ -411,12 +410,12 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	else:
 		##Calculate and plot the combined fluxes of the two sources, even if source one or two has been accepted
 		##just as a guide
-		src_all = get_allinfo(all_info)
+		src_all = mkl.get_allinfo(all_info)
 		
 		if accepted_inds=='Nope':
 			pass
 		else:
-			comb_crit, ra_ws, rerr_ws, dec_ws, derr_ws, temp_freqs, comb_freqs, comb_fluxs, comb_ferrs, comb_fit, comb_jstat, comb_chi_red, combined_names, set_freqs, set_fluxs, set_fits = combine_flux(src_all,src_g,accepted_inds,'plot=yes',len(matches))
+			comb_crit, ra_ws, rerr_ws, dec_ws, derr_ws, temp_freqs, comb_freqs, comb_fluxs, comb_ferrs, comb_fit, comb_jstat, comb_chi_red, combined_names, set_freqs, set_fluxs, set_fits = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=yes',len(matches))
 		
 		##If the criteria sent the double to be combined, actually plot the fitted line
 		if dom_crit == 'No dom. source':

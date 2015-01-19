@@ -2,19 +2,11 @@
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
-#import matplotlib.pyplot as plt
-#import matplotlib.gridspec as gridspec
-#from matplotlib import patches
-#from matplotlib.patches import Ellipse
 from itertools import combinations
-#from astropy.wcs import WCS
-#from wcsaxes import WCSAxes
-#from astropy import units as units
 import copy
 
 dr = np.pi/180.0
 
-##Used to scale plot to 3 acrmins by 3 arcmins
 def dec_to_deg(time): 
 	'''converts dd:mm:ss.ss in to degrees, must input as a string
 	   returns a float in units of degrees'''
@@ -37,7 +29,6 @@ global chi_thresh
 global jstat_thresh
 global num_freqs
 global split
-
 
 ##USED TO CREATE NEW SOURCE NAMES
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -42,12 +42,11 @@ parser.add_option('-s', '--split',default=0,
 
 options, args = parser.parse_args()
 
+##Set up a bunch of initial parameters-----------------------------------------
+##-----------------------------------------------------------------------------
 low_prob,high_prob = map(float,options.prob_thresh.split(','))
 jstat_thresh = float(options.epsilon_thresh)
 chi_thresh = float(options.chi_thresh)
-
-##So we're now saying if it's within the resolution of the base catalogue + the
-##positional error, it's a possible match
 
 closeness = mkl.dec_to_deg(options.resolution)/2
 
@@ -65,6 +64,8 @@ num_freqs = []
 for freq in cat_fs: num_freqs.append(len(freq.split('~')))
 
 split = options.split
+##-----------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
 
 ##Transfer variables to the mkl module
 mkl.closeness = closeness
@@ -205,7 +206,6 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 bayes_comp = open(options.input_bayes).read().split('END_GROUP')
 del bayes_comp[-1]
 
-num = 0
 for comp in bayes_comp:
 	##Get the information into nice usable forms, and get rid of empty/pointless
 	##entries
@@ -239,7 +239,6 @@ for comp in bayes_comp:
 	##If just one combo positionally possible, do a single combo check
 	elif len(accepted_matches)==1:
 		single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,len(matches),repeated_cats,matches)
-		##(Any plotting gets done within single_match_test)
 		
 	##If more than one combination is positionally possible:
 	else:
@@ -270,6 +269,7 @@ for comp in bayes_comp:
 					make_accept(comp,g_stats,'combine',accepted_inds)
 				##Otherwise, add as many components as were made with split function
 				else:
+					##Will only get here if splitting was turned on by the user
 					letters = ['A','B','C','D','E','F','G','H']
 					for source in comb_source:
 						letter = letters[comb_source.index(source)]
@@ -286,6 +286,7 @@ for comp in bayes_comp:
 				else:
 					make_eyeballed(comp,g_stats,'combine',accepted_inds)
 
+##Print information about matches where there was only one source from each catalogue
 def print_singles():
 	print '\nSINGLE MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
 	print "............Overall............"
@@ -318,7 +319,7 @@ def print_out(num_matches,description,BIG):
 	print "%s rejected at the spectral stage: " %description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])
 	print "...........Overall Combine............."
 	print "%s accepted at the combine stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
-	print "%s accepted at the splitting stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and 'split' in g_stats.accept_type])
+	print "%s accepted at the splitting stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA'])
 	print "%s sent to eyeball at the combine stage: " %description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
 	print "-----------------------------------------------------------------------"
 	for retained in reversed(range(1,num_matches+1)):
@@ -333,7 +334,7 @@ def print_out(num_matches,description,BIG):
 		print "\taccepted at the spectral stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
 		print "\trejected at the spectral stage: ", len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
 		print "\taccepted at the combine stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
-		print "\taccepted at the splitting stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and 'split' in g_stats.accept_type and g_stats.retained_matches==retained])
+		print "\taccepted at the splitting stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA' and g_stats.retained_matches==retained])
 		print "\tsent to eyeball at the combine stage: ", len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
 	print '\n'
 
@@ -344,22 +345,21 @@ print "All sources accepted: " , len(sources)
 print "\taccepted by position: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='position'])
 print "\taccepted by spectral: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='spectral'])
 print "\taccepted by combine: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='combine'])
-print "\taccepted by splitting: ", len([1 for g_stats in sources_stats if 'split' in g_stats.accept_type])
+print "\taccepted by splitting: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='splitA'])
 print "All sources rejected: " , len(rejected_stats)
 print "\trejected by position: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='position'])
 print "\trejected by spectral: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='spectral'])
-#print "\trejected by combine: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='combine'])
-#print "\trejected by splitting: ", len([1 for g_stats in rejected_stats if 'split' in g_stats.accept_type])
 print "All sources retained to eyeball: " , len(eyeballed_stats)
 print "\tretained by position: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='position'])
 print "\tretained by spectral: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='spectral'])
 print "\tretained by combine: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='combine'])
-print "\tretained by splitting: ", len([1 for g_stats in eyeballed_stats if 'split' in g_stats.accept_type])
+print "\tretained by splitting: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='splitA'])
 
 if options.verbose==True:
 	print_singles()
 	print_out(2,'Doubles','DOUBLE')
 	print_out(3,'Triples','TRIPLE')
+	##ADD THESE AND ANY MORE TO YOU HEARTS DESIRE
 	#print_out(4,'Quadruples','QUADRUPLES')
 	#print_out(5,'Quintuples','QUINTUPLES')
 	#print_out(6,'Sextuples','SEXTUPLES')
@@ -387,7 +387,9 @@ for source in sources:
 	updated_decs.append(source.decs[pos_ind])
 	updated_rerrs.append(source.rerrs[pos_ind])
 	updated_derrs.append(source.derrs[pos_ind])
-	
+
+##Make an 'MWA' name based on position (limited in number of characters due to the RTS)
+##should change this really
 def make_name(ra,dec,ext):
 	ra_str = mkl.deg_to_hour(ra)[:6]
 	dec_str = mkl.deg_to_degmins(dec)[:5]
@@ -413,14 +415,11 @@ for i in xrange(len(type_matches)):
 		name = make_name(updated_ras[i],updated_decs[i],'')
 	names.append(name)
 
-#names = [make_name(updated_ras[i],updated_decs[i]) for i in xrange(len(updated_ras))]
 t.add_column('Name',names,description='Name based on position of combined source')
 
+##Add lots of data
 prim_names = [source.names[0] for source in sources]
 t.add_column('%s_name' %matched_cats[0],prim_names,description='Name of %s component' %matched_cats[0])
-
-
-
 t.add_column('updated_RA_J2000',np.array(updated_ras),description='Updated Right ascension of source',unit='deg')
 t.add_column('updated_DEC_J2000',np.array(updated_decs),description='Updated Declination of source',unit='deg')
 t.add_column('updated_RA_err',np.array(updated_rerrs),description='Error on Updated Right ascension of source',unit='deg')
@@ -439,6 +438,7 @@ for cat in xrange(len(num_freqs)):
 		t.add_column('S_%.f' %cat_freqs[cat][freq],fluxs,description='Flux at %sMHz' %cat_freqs[cat][freq],mask=fluxs==-100000.0, fill='--',unit='Jy')
 		t.add_column('e_S_%.f' %cat_freqs[cat][freq],ferrs,description='Flux error at %sMHz' %cat_freqs[cat][freq],mask=ferrs==-100000.0, fill='--',unit='Jy')
 
+##Extrapolate the base catalogue frequency flux density, using the fitted values for late comparison
 extrap_freq = cat_freqs[0][0]
 		
 def extrap(freq,SI,intercept):
@@ -489,25 +489,20 @@ t.write("%s.vot" %options.output_name,votype='ascii',overwrite=True)
 
 #WRITE THE TO EYEBALL+++++++++++++++++++++++++++++++++++++++++++++_____________________________------------------------++++++++++++++++++++++++++++++
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+##Write out two files, one that contains all the information for all sources accepted,
+##and one for the sources rejected/eyeballed - useful for later analysis, and used by
+##plot_extended.py
 
-
+##Find the base cat flux, and sort by descending flux so can investigate brightest sources to eyeball first
 eyeball_fluxes = [float(comp.split('\n')[1].split()[7]) for comp in to_eyeball_comps]
-
 to_eyeball_comps = [to_eye for flux,to_eye in sorted(zip(eyeball_fluxes,to_eyeball_comps), key=lambda pair: pair[0], reverse=True) ]
-
 for eyeball in to_eyeball_comps:
 	eyeball_outfile.write(eyeball)
-
 eyeball_outfile.close()
 
+##Same for the accepted sources
 accept_fluxes = [float(comp.split('\n')[1].split()[7]) for comp in to_accept_comps]
-
 to_accept_comps = [to_eye for flux,to_eye in sorted(zip(accept_fluxes,to_accept_comps), key=lambda pair: pair[0], reverse=True) ]
-
 for accept in to_accept_comps:
 	accept_outfile.write(accept)
-
 accept_outfile.close()
-
-
-#untreated_outfile.close()

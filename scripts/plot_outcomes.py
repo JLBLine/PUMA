@@ -49,6 +49,8 @@ parser.add_option('-g', '--accept', action='store_true',default=False,
 
 options, args = parser.parse_args()
 
+##Set up a bunch of initial parameters-----------------------------------------
+##-----------------------------------------------------------------------------
 plot_num=int(options.num_matches)
 
 plot_reject = options.reject
@@ -63,10 +65,6 @@ else:
 low_prob,high_prob = map(float,options.prob_thresh.split(','))
 jstat_thresh = float(options.epsilon_thresh)
 chi_thresh = float(options.chi_thresh)
-
-##So we're now saying if it's within the resolution of the base catalogue + the
-##positional error, it's a possible match
-
 closeness = mkl.dec_to_deg(options.resolution)/2
 
 cat_fs = options.cat_freqs.split(',')
@@ -82,8 +80,18 @@ for pref in options.pref_cats.split(','): pref_cats.append(pref)
 num_freqs = []
 for freq in cat_fs: num_freqs.append(len(freq.split('~')))
 split = options.split
+##-----------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
 
-##Transfer variable to the mkl module
+##Transfer variables to the mkl and pol modules
+pol.closeness = closeness
+pol.high_prob = high_prob
+pol.low_prob = low_prob
+pol.chi_thresh = chi_thresh
+pol.jstat_thresh = jstat_thresh
+pol.num_freqs = num_freqs
+pol.split = split
+
 mkl.closeness = closeness
 mkl.high_prob = high_prob
 mkl.low_prob = low_prob
@@ -95,17 +103,17 @@ mkl.split = split
 def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_matches,plot_num,truth_test):
 	if plot_all:
 		if plot_num == 0:
-			mkl.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+			pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 		else:
 			if num_matches == plot_num:
-				mkl.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+				pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 	else:
 		if truth_test:
 			if plot_num == 0:
-				mkl.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+				pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 			else:
 				if num_matches == plot_num:
-					mkl.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 		else:
 			pass
 

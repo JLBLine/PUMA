@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import atpy
 import numpy as np
-#from itertools import combinations
 import optparse
 
 ##Get all of the input variables
@@ -93,7 +92,6 @@ for cat in matched_cats:
 	match_names = []
 	separations = []
 	skip_row = []
-	
 	##Get data
 	match_name = 'matched_%s_%s.vot' %(primary_cat,cat)
 	data,rows = open_table(match_name)
@@ -130,7 +128,8 @@ scaled_source_nums = []
 for cat,skip in zip(matched_cats,skip_rows):
 	match_name = 'matched_%s_%s.vot' %(primary_cat,cat)
 	data,rows = open_table(match_name)
-	
+	##Find the source densities from the tables that were calcualted by cross_match.py,
+	##and add to scaled_source_nums list
 	prim_dens = float(data.keywords["%s_nu" %primary_cat])
 	match_dens = float(data.keywords["%s_nu" %cat])
 	if len(scaled_source_nums)==0:
@@ -139,6 +138,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 	else:
 		scaled_source_nums.append(match_dens)
 	
+	##(For all rows of data)
 	for s_row in xrange(rows):
 		##If in the skip list, it's a repeated source, so don't add it to the matched data
 		if s_row in skip:
@@ -179,8 +179,6 @@ for cat,skip in zip(matched_cats,skip_rows):
 		else:
 			row = data.row(s_row)
 			primary_name = row[0]
-			
-			print len(primary_names)
 			ind = primary_names.index(primary_name)
 			src = source_matches[ind]
 			src.cats.append(cat)
@@ -202,7 +200,6 @@ for cat,skip in zip(matched_cats,skip_rows):
 			ind_freq = matched_cats.index(cat)
 			cat_freq = matched_freqs[ind_freq]
 			cat_freqs = cat_freq.split('~')
-			
 			##If the catalogue has more than one frequency, append all entries to a list
 			##If just one, create a one entry list
 			if len(cat_freqs)>1:
@@ -240,10 +237,6 @@ def do_match(matches,comp):
 			new_match.append(match)
 	return new_match
 
-###Calculate area of sky bound by 2 points on celestial sphere
-#def get_lune(ra1,ra2,dec1,dec2):
-	#return abs((ra2*dr-ra1*dr)*(np.sin(dec2*dr)-np.sin(dec1*dr)))
-	
 ##Calculates angular distance between two celestial points - input degrees, output radians
 def calc_dist(RA1,RA2,Dec1,Dec2):   
 	in1 = (90.0 - Dec1)*dr
@@ -253,7 +246,6 @@ def calc_dist(RA1,RA2,Dec1,Dec2):
 	alpha = np.arccos(cosalpha)
 	return alpha
 
-#@profile
 def do_bayesian(sources):
 	##Calculate the weight of each source based on astrometric precision
 	#for source in sources: print source.rerr,source.derr 
@@ -287,7 +279,8 @@ def do_bayesian(sources):
 	prior = (source_nums[0]/prod_nums)
 	
 	##Calculate posterior
-	#posterior = (bayes_factor*prior)/(1+(bayes_factor*prior))   ##The approximation to the posterior in the lims of small priors
+	#posterior = (bayes_factor*prior)/(1+(bayes_factor*prior))   ##The approximation to the posterior in the lims of small priors - 
+	##uncomment if you want to get rid of divide by zero messages (possibly less accurate though)
 	posterior = (1 + ((1 - prior)/(bayes_factor*prior)))**-1
 	
 	return prior, bayes_factor, posterior
@@ -320,7 +313,6 @@ for src in source_matches:
 	##Separate the grouped information in to source_single classes and append to cats
 	##in a specific order
 	cats = [[] for i in all_cats]
-	
 	for i in xrange(len(src.names)):
 		sing_src = source_single()
 		sing_src.cat = src.cats[i]
@@ -337,7 +329,7 @@ for src in source_matches:
 		sing_src.flag = src.flags[i]
 		sing_src.ID = src.IDs[i]
 		sing_src.freqs = src.freqs[i]
-		
+
 		ind_name = all_cats.index(src.cats[i])
 		cats[ind_name].append(sing_src)
 	
@@ -349,21 +341,18 @@ for src in source_matches:
 		matches = do_match(matches,comps[i])
 		
 	out_file.write('START_COMP\n')
-
 	##For each combination of sources, calculate a bayesian factor, a prior and a posterior probability
 	##Write all source information for that match along with prior, bayes_factor and posterior to a single line
 	##If a catalogue hasn't been matched, create a string of -100000.0. This is neccessary for create_table.py
 	##and plot_image.py to be able to automatically pick out the correct information.
 	for option in matches:
 		catss = [source.cat for source in option]
-		
 		prior,bayes,posterior =  do_bayesian(option)
 		match_str=''
 		for cat in all_cats:
 			if cat in catss:
 				src = option[catss.index(cat)]
 				if type(src.freqs)!=list:
-					
 					match_str += "%s %s %s %s %s %s %s %s %s %s %s %s %s %s " %(src.cat,src.name,str(src.ra),str(src.rerr),
 					str(src.dec),str(src.derr),src.freqs,src.fluxs,src.ferrs,src.major,src.minor,src.PA,src.flag,src.ID)
 				else:
@@ -383,11 +372,4 @@ for src in source_matches:
 		out_file.write(match_str)
 	out_file.write('END_COMP\n')
 	out_file.write('END_GROUP\n')
-	
 out_file.close()
-
-#def main():
-    #do_this_shit()
- 
-#if __name__ == "__main__":
-    #main()

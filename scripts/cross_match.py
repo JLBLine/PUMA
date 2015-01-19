@@ -55,6 +55,9 @@ options, args = parser.parse_args()
 dr = np.pi/180.0
 
 def get_units(data,detail,unit,unit_type,entries):
+	'''A function for either returning an array of -100000.0s of
+	a given length, or taking a given array and performing unit conversion,
+	given the specified units'''
 	if detail=='-':
 		column = np.empty(entries); column.fill(-100000.0)
 	else:
@@ -81,6 +84,10 @@ def get_units(data,detail,unit,unit_type,entries):
 	return column
 
 def get_units_blanks(data,detail,unit,unit_type,entries):
+	'''A function for either returning an array of -100000.0s of
+	a given length, or taking a given array and performing unit conversion,
+	given the specified units. Can handle the input array having a blank
+	input. Slower than get_units'''
 	column = np.empty(entries); column.fill(-100000.0)
 	if detail=='-':
 		return column
@@ -114,10 +121,11 @@ def get_units_blanks(data,detail,unit,unit_type,entries):
 		return column
 			
 def make_table(data,details,units,prefix,ra_lims,dec_lims):
+	##Find all of the data in the columns as specified by the
+	##user inputs
 	shape = data.shape
 	entries = shape[0]
 	names = data[details[0]]
-	
 	RA = get_units(data,details[1],units[0],'angle',entries)
 	RA_error = get_units(data,details[2],units[1],'angle',entries)
 	Dec = get_units(data,details[3],units[2],'angle',entries)
@@ -139,6 +147,7 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	freqs = []
 	fluxs = []
 	ferrs = []
+	##This handles the case of more than one frequency in a single catalogue
 	if len(details)>13:
 		length = len(details) - 13
 		num_of_freqs = length / 3
@@ -146,8 +155,9 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 			freqs.append(details[13+(3*i)])
 			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],'Jy','flux',entries))
 			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],'Jy','flux',entries))
+			
+	##Create a new table, and populate with the data in correct units
 	t=atpy.Table(masked=True)
-	
 	t.add_column('%s_name' %prefix,names,description='Name from catalogue')
 	t.add_column('%s_RAJ2000' %prefix,RA,description='Right Ascension of source (J2000)',unit='deg')
 	t.add_column('%s_e_RAJ2000' %prefix,RA_error,description='Error on Right Ascension',unit='deg')
@@ -160,14 +170,19 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	t.add_column('%s_PA' %prefix,PA,description='Fitted Position Angle',unit='deg')
 	t.add_column('%s_flag' %prefix,flags,description='Any meta flag for inclusion')
 	t.add_column('%s_FieldID' %prefix,ID,description='If avaiable, image field ID')
+	##Again, handles multiple frequencies in one catalogues
 	if len(freqs)>0:
 		for i in xrange(len(freqs)):
 			t.add_column('%s_Flux_%.1f' %(prefix,float(freqs[i])),fluxs[i],description='Source flux at %.1fMHz' %float(freqs[i]),unit='Jy')
 			t.add_column('%s_Flux_%.1f_err' %(prefix,float(freqs[i])),ferrs[i],description='Error on flux at %.1fMHz' %float(freqs[i]),unit='Jy')
 			
 	def get_lune(ra1,ra2,dec1,dec2):
+		'''Calculates the steradian coverage of a lune defined by two RA,Dec
+		coords'''
 		return abs((ra2*dr-ra1*dr)*(np.sin(dec2*dr)-np.sin(dec1*dr)))
-			
+	
+	##Count the number of sources within the requested user lune to calculate the scaled
+	##source density of the catalogues
 	##If the ra lims do not cross over the RA = 0 line
 	if ra_lims[0]<ra_lims[1]:
 		sources_in_bounds =  [i for i in xrange(len(RA)) if (RA[i]>=ra_lims[0] and RA[i]<=ra_lims[1]) and (Dec[i]>=dec_lims[0] and Dec[i]<=dec_lims[1])]
@@ -177,9 +192,9 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 		sources_in_bounds =  [i for i in xrange(len(RA)) if (RA[i]>=ra_lims[0] or RA[i]<=ra_lims[1]) and (Dec[i]>=dec_lims[0] and Dec[i]<=dec_lims[1])]
 		extra = 360.0 - ra_lims[0]
 		area = get_lune(0,ra_lims[1]+extra,dec_lims[0],dec_lims[1])
-		
 	scaled_source_density = (4*np.pi*len(sources_in_bounds))/area
-			
+	
+	##Add the source density to the table
 	t.add_keyword('%s_nu' %prefix,str(scaled_source_density))
 	t.write('simple_%s.vot' %(prefix),votype='ascii',overwrite=True)
 	
@@ -188,6 +203,8 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 prefix1 = options.prefix1
 prefix2 = options.prefix2
 
+##If making the 'simple' tables, read in all of the user inputs
+##and use them to create the tables
 if options.make_table==True:
 	details1 = options.details1.split(',')
 	details2 = options.details2.split(',')
@@ -206,21 +223,25 @@ if options.make_table==True:
 	ss_dens2 = make_table(data2,details2,units2,prefix2,ra_lims2,dec_lims2)
 	
 else:
+	##Even if 'simple' tables have been created, need the scaled source density
 	##Read in the tables just to get one lousy number?!?!?!
 	simp_1 = atpy.Table("simple_%s.vot" %prefix1)
 	simp_2 = atpy.Table("simple_%s.vot" %prefix2)
-
 	ss_dens1 = simp_1.keywords["%s_nu" %prefix1]
 	ss_dens2 = simp_2.keywords["%s_nu" %prefix2]
-	
+
+##Using the appropriate user values, run stilts to produce a cross matched
+##table with all possible matches and all possible information included
+##First create a string with all the commands in
 match_string = 'stilts tmatch2 join=1and2 find=all matcher=sky params=%d ' %float(options.separation)
 match_string += "in1=simple_%s.vot values1='%s_RAJ2000 %s_DEJ2000' suffix1='' " %(prefix1,prefix1,prefix1)
 match_string += "in2=simple_%s.vot values2='%s_RAJ2000 %s_DEJ2000' suffix2='' " %(prefix2,prefix2,prefix2)
 match_string += "fixcols=all out=matched_%s_%s.vot" %(prefix1,prefix2)
-
+##Run the stilts match
 subprocess.call(match_string,shell=True)
 
+##Add the calculated scaled source density of each catalogue to
+##the stilts matched catalogue for use by calculate_bayes.py
 match_table = atpy.Table("matched_%s_%s.vot" %(prefix1,prefix2),verbose=False)
-
 match_table.add_keyword("%s_nu" %prefix1,str(ss_dens1))
 match_table.add_keyword("%s_nu" %prefix2,str(ss_dens2))
