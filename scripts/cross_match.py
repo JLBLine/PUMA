@@ -1,13 +1,8 @@
+#!/usr/bin/python
 import atpy
 import numpy as np
-#import sys
-#sys.path.append("/home/jline/Data/tools")
-#import tool_lib as tool
 import subprocess
-#import matplotlib.pyplot as plt
-#from matplotlib.patches import Ellipse
 import optparse
-
 
 parser = optparse.OptionParser()
 
@@ -57,7 +52,6 @@ parser.add_option('-z', '--dec_lims2',
 
 options, args = parser.parse_args()
 
-
 dr = np.pi/180.0
 
 def get_units(data,detail,unit,unit_type,entries):
@@ -85,7 +79,6 @@ def get_units(data,detail,unit,unit_type,entries):
 			else:
 				print 'flux conversion error'
 	return column
-
 
 def get_units_blanks(data,detail,unit,unit_type,entries):
 	column = np.empty(entries); column.fill(-100000.0)
@@ -143,7 +136,6 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 		ID = np.empty(entries); ID.fill(-100000.0)
 	else:
 		ID = data[details[12]]
-
 	freqs = []
 	fluxs = []
 	ferrs = []
@@ -221,8 +213,6 @@ else:
 	ss_dens1 = simp_1.keywords["%s_nu" %prefix1]
 	ss_dens2 = simp_2.keywords["%s_nu" %prefix2]
 	
-##Need to have the directory your command stilts in is added to your PATH, ie on my machine I've added the line
-## export PATH=/usr/local/STILTS:$PATH  to my ~/.bashrc
 match_string = 'stilts tmatch2 join=1and2 find=all matcher=sky params=%d ' %float(options.separation)
 match_string += "in1=simple_%s.vot values1='%s_RAJ2000 %s_DEJ2000' suffix1='' " %(prefix1,prefix1,prefix1)
 match_string += "in2=simple_%s.vot values2='%s_RAJ2000 %s_DEJ2000' suffix2='' " %(prefix2,prefix2,prefix2)

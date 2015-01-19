@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import atpy
 import numpy as np
 import make_table_lib as mkl
@@ -21,9 +22,6 @@ parser.add_option('-i', '--input_bayes',
 parser.add_option('-o', '--output_name', 
 	help='Enter name for output catalogue')
 	
-parser.add_option('-f', '--figure_draw', default=0,
-	help='Plot the fits of a certain number of matches')
-
 parser.add_option('-a', '--prob_thresh',
 	help='The lower and upper probability thresholds - separate with a comma')
 
@@ -67,7 +65,8 @@ num_freqs = []
 for freq in cat_fs: num_freqs.append(len(freq.split('~')))
 
 split = options.split
-##Transfer variable to the mkl module
+
+##Transfer variables to the mkl module
 mkl.closeness = closeness
 mkl.high_prob = high_prob
 mkl.low_prob = low_prob
@@ -75,12 +74,6 @@ mkl.chi_thresh = chi_thresh
 mkl.jstat_thresh = jstat_thresh
 mkl.num_freqs = num_freqs
 mkl.split = split
-
-figure_draw=int(options.figure_draw)
-if figure_draw==0: plotting = 'no'
-else:
-	plotting = 'yes'
-	plot_num = figure_draw
 
 ##Lists for stats gathering
 sources = []
@@ -117,15 +110,14 @@ def make_entry(match,SI,intercept,SI_err,intercept_err,g_stats,accept_type,low_r
 	sources_stats.append(g_stats)
 
 def make_accept(comp,g_stats,accept_type,accepted_inds):
-	'''Write accepted source information to *output_name*-accept.txt to eyeball 
+	'''Write accepted source information to *output_name*-accept.txt to plot 
 	the types of matches accepted'''
 	a_ind = ""
 	if len(accepted_inds)==0: accepted_inds = [0]
 	for i in accepted_inds: a_ind+=str(i)+','
 	a_ind = a_ind[:-1]
 	comp = comp[1:]
-	##Stats used by investigate_possibles.py for plotting
-	
+	##Stats used by plot_extended.py for plotting
 	stat_string = "STATS %d %d %s accept %s\nEND_GROUP\n" %(g_stats.num_matches,g_stats.retained_matches,a_ind,accept_type)
 	to_accept_comps.append(comp+stat_string)
 	to_accept_accepts.append(stat_string)
@@ -140,7 +132,6 @@ def make_rejection(comp,g_stats,accept_type,accepted_inds):
 	stat_string = "STATS %d %d %s reject %s\nEND_GROUP\n" %(g_stats.num_matches,g_stats.retained_matches,a_ind,accept_type)
 	to_eyeball_comps.append(comp+stat_string)
 	to_eyeball_accepts.append(stat_string)
-	
 	rejected.append(1)
 	g_stats.accept_type = accept_type
 	rejected_stats.append(g_stats)
@@ -154,7 +145,6 @@ def make_eyeballed(comp,g_stats,accept_type,accepted_inds):
 	stat_string = "STATS %d %d %s eyeball %s\nEND_GROUP\n" %(g_stats.num_matches,g_stats.retained_matches,a_ind,accept_type)
 	to_eyeball_comps.append(comp+stat_string)
 	to_eyeball_accepts.append(stat_string)
-	
 	eyeballed.append(1)
 	g_stats.accept_type = accept_type
 	eyeballed_stats.append(g_stats)
@@ -189,11 +179,8 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',0)
 		else:
 			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',1)
-		if plotting=='yes':
-			if num_matches == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$')
 			
 		make_accept(comp,g_stats,'position',accepted_inds)
-		#if num_matches == plot_num: create_plot(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$')
 	else:
 		##look to see if all sources are within the resolution of the
 		##base catalogue or above some probability theshold, if so check with a spec test else reject them
@@ -204,39 +191,19 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0)
 				else:
 					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1)
-				if plotting=='yes':
-					if num_matches == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec')
-				#create_plot(comp,accepted_inds,'one source accept - low prob','spec passed','accept by spec')
 				make_accept(comp,g_stats,'spectral',accepted_inds)
 			else:
 				g_stats.retained_matches = 1
 				##Put accepted inds as [0] just to have something outputted to the investigate text file - 
 				##accepted_inds is empty is rejecting at this stage
 				make_rejection(comp,g_stats,'spectral',[0])
-				if plotting=='yes':
-					if num_matches == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'Spec failed','Reject by spec')
-				#mkl.create_plot(comp,accepted_inds,match_crit,'Spec failed','Reject by spec')
 		else:
 			g_stats.retained_matches = 1
 			make_rejection(comp,g_stats,'position',[0])
-			if plotting=='yes':
-				if num_matches == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_l$')
-			#mkl.create_plot(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_u$')
-
 
 ##Open the input text file (output from calculate_bayes.py)
 bayes_comp = open(options.input_bayes).read().split('END_GROUP')
 del bayes_comp[-1]
-
-from matplotlib import rc
-
-font = {'size': 14}
-rc('font', **font)
-#rc('xtick', labelsize=16) 
-#rc('ytick', labelsize=16) 
-
-#for comp in bayes_comp[31:32]:
-#for comp in bayes_comp[689:690]:
 
 num = 0
 for comp in bayes_comp:
@@ -268,11 +235,7 @@ for comp in bayes_comp:
 		cats = src_all.cats
 		repeated_inds = [i for i in xrange(len(cats)) if cats.count(cats[i])>1]
 		make_rejection(comp,g_stats,'position',repeated_inds)
-		
-		if plotting=='yes':
-			if len(matches) == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A')
-		#mkl.create_plot(comp,accepted_inds,match_crit,'positionally impossible','N/A')
-		
+
 	##If just one combo positionally possible, do a single combo check
 	elif len(accepted_matches)==1:
 		single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,len(matches),repeated_cats,matches)
@@ -291,32 +254,11 @@ for comp in bayes_comp:
 				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0)
 			else:
 				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1)
-			if plotting=='yes':
-				##Find the probs of all the matches, and use the prob of the dom match to see what number match was accepted
-				all_probs = [float(match.split()[-1]) for match in matches]
-				accepted_prob = accepted_probs[dom_source]
-				dom_num = all_probs.index(accepted_prob)
-				if len(matches) == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom. source')
-			#all_probs = [float(match.split()[-1]) for match in matches]
-			#accepted_prob = accepted_probs[dom_source]
-			#dom_num = all_probs.index(accepted_prob)
-			#mkl.create_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom. source')
-			
 			make_accept(comp,g_stats,'spectral',accepted_inds)
 		##If nothing dominates, send to check if a combined source works
 		else:
 			comb_crit, comb_source, comb_jstat, comb_chi_red = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=no',len(matches))
-			if plotting=='yes':
-				if len(matches) == plot_num: mkl.create_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit)
-			#if big_sep=='yes':
-				#mkl.create_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit)
-				#num +=1
-			#if big_sep=='yes':
-				#if split_flag=='':
-					#mkl.create_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit)
 				
-			##Either accept or send to eyeball
-			#if comb_crit=='Accepted -\ncombined':
 			if 'Accepted' in comb_crit:
 				##If source was combined, add one new source with combine in the g_stat
 				if len(comb_source)==1:
@@ -326,9 +268,7 @@ for comp in bayes_comp:
 					sources_stats.append(g_stats)
 					##make_accept makes infomation for plot_extended to use
 					make_accept(comp,g_stats,'combine',accepted_inds)
-					#print bayes_comp.index(comp)
 				##Otherwise, add as many components as were made with split function
-				#else:
 				else:
 					letters = ['A','B','C','D','E','F','G','H']
 					for source in comb_source:
@@ -340,19 +280,11 @@ for comp in bayes_comp:
 						sources_stats.append(new_gstat)
 						##make_accept makes infomation for plot_extended to use
 						make_accept(comp,g_stats,'split%s' %letter,accepted_inds)
-						#if letter=='C':
-							#mkl.create_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit)
-				#mkl.create_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit)
 			else:
 				if 'split' in comb_crit:
 					make_eyeballed(comp,g_stats,'split',accepted_inds)
 				else:
 					make_eyeballed(comp,g_stats,'combine',accepted_inds)
-				#if 'askap' in src_all.cats: mkl.create_plot(comp,accepted_inds,match_crit,'no dom source',comb_crit)
-				#mkl.create_plot(comp,accepted_inds,match_crit,'no dom source',comb_crit)
-	#print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-
-#print num
 
 def print_singles():
 	print '\nSINGLE MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
@@ -428,7 +360,7 @@ if options.verbose==True:
 	print_singles()
 	print_out(2,'Doubles','DOUBLE')
 	print_out(3,'Triples','TRIPLE')
-	print_out(4,'Quadruples','QUADRUPLES')
+	#print_out(4,'Quadruples','QUADRUPLES')
 	#print_out(5,'Quintuples','QUINTUPLES')
 	#print_out(6,'Sextuples','SEXTUPLES')
 

@@ -1,6 +1,8 @@
+#!/usr/bin/python
 import atpy
 import numpy as np
 import make_table_lib as mkl
+import plot_outcomes_lib as pol
 import optparse
 import copy
 
@@ -150,7 +152,6 @@ bayes_comp = open(options.input_bayes).read().split('END_GROUP')
 del bayes_comp[-1]
 
 from matplotlib import rc
-
 font = {'size': 14}
 rc('font', **font)
 

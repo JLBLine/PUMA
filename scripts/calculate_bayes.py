@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import atpy
 import numpy as np
 #from itertools import combinations
@@ -140,31 +139,36 @@ for cat,skip in zip(matched_cats,skip_rows):
 	else:
 		scaled_source_nums.append(match_dens)
 	
-	for row in data:
-		primary_name = row[0]
-		if primary_name not in primary_names: 
-			primary_names.append(primary_name)
-			src = source_info()
-			src.cats.append(primary_cat)
-			src.names.append(str(row[0]))
-			src.ras.append(str(row[1]))
-			src.rerrs.append(str(row[2]))
-			src.decs.append(str(row[3]))
-			src.derrs.append(str(row[4]))
-			src.fluxs.append(str(row[5]))
-			src.ferrs.append(str(row[6]))
-			src.majors.append(str(row[7]))
-			src.minors.append(str(row[8]))
-			src.PAs.append(str(row[9]))
-			##Sometimes the flag data is empty - need to change to a null
-			##result, otherwise goes as a space and later indexing gets ruined
-			if str(row[10])=='':
-				src.flags.append('-100000.0')
-			else:
-				src.flags.append(str(row[10]))
-			src.IDs.append(str(row[11]))
-			src.freqs.append(primary_freq)
-			source_matches.append(src)
+	for s_row in xrange(rows):
+		##If in the skip list, it's a repeated source, so don't add it to the matched data
+		if s_row in skip:
+			pass
+		else:
+			row = data.row(s_row)
+			primary_name = row[0]
+			if primary_name not in primary_names:
+				primary_names.append(primary_name)
+				src = source_info()
+				src.cats.append(primary_cat)
+				src.names.append(str(row[0]))
+				src.ras.append(str(row[1]))
+				src.rerrs.append(str(row[2]))
+				src.decs.append(str(row[3]))
+				src.derrs.append(str(row[4]))
+				src.fluxs.append(str(row[5]))
+				src.ferrs.append(str(row[6]))
+				src.majors.append(str(row[7]))
+				src.minors.append(str(row[8]))
+				src.PAs.append(str(row[9]))
+				##Sometimes the flag data is empty - need to change to a null
+				##result, otherwise goes as a space and later indexing gets ruined
+				if str(row[10])=='':
+					src.flags.append('-100000.0')
+				else:
+					src.flags.append(str(row[10]))
+				src.IDs.append(str(row[11]))
+				src.freqs.append(primary_freq)
+				source_matches.append(src)
 	
 	##Second, get all the matched source data, and append to the appropriate
 	##primary catalogue source
@@ -175,6 +179,8 @@ for cat,skip in zip(matched_cats,skip_rows):
 		else:
 			row = data.row(s_row)
 			primary_name = row[0]
+			
+			print len(primary_names)
 			ind = primary_names.index(primary_name)
 			src = source_matches[ind]
 			src.cats.append(cat)
