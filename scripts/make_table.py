@@ -270,7 +270,7 @@ for comp in bayes_comp:
 				##Otherwise, add as many components as were made with split function
 				else:
 					##Will only get here if splitting was turned on by the user
-					letters = ['A','B','C','D','E','F','G','H']
+					letters = ['A','B','C','D','E','F']
 					for source in comb_source:
 						letter = letters[comb_source.index(source)]
 						new_gstat = copy.deepcopy(g_stats)
@@ -290,7 +290,7 @@ for comp in bayes_comp:
 def print_singles():
 	print '\nSINGLE MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
 	print "............Overall............"
-	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==1])
+	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
 	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==1])
 	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==1])
 	print "Singles: ", num_accept+num_reject+num_eyeball, " Accepted:", num_accept,' Rejected entirely:', num_reject
@@ -306,7 +306,7 @@ def print_singles():
 def print_out(num_matches,description,BIG):
 	print '%s MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++' %BIG
 	print "............Overall............"
-	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches])
+	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
 	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches])
 	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches])
 	print "%s: " %description ,num_accept+num_reject+num_eyeball , " Accepted:", num_accept,' Rejected entirely:', num_reject
@@ -319,13 +319,14 @@ def print_out(num_matches,description,BIG):
 	print "%s rejected at the spectral stage: " %description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])
 	print "...........Overall Combine............."
 	print "%s accepted at the combine stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
-	print "%s accepted at the splitting stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA'])
 	print "%s sent to eyeball at the combine stage: " %description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
+	print "...........Overall Split............."
+	print "%s accepted at the splitting stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA'])
+	print "%s sent to eyeball at the splitting stage: " %description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split'])
 	print "-----------------------------------------------------------------------"
 	for retained in reversed(range(1,num_matches+1)):
 		print "...........%d Positionally Retained..............." %retained
-		##FOR LOOP HERE TO SEE HOW MANY ARE CLOSE AND HOW MANY HIGH/LOW PROB
-		accept_num = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
+		accept_num = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
 		reject_num = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
 		combined_num = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
 		print "\ttotal: ", accept_num + reject_num + combined_num
@@ -334,14 +335,15 @@ def print_out(num_matches,description,BIG):
 		print "\taccepted at the spectral stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
 		print "\trejected at the spectral stage: ", len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
 		print "\taccepted at the combine stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
-		print "\taccepted at the splitting stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA' and g_stats.retained_matches==retained])
 		print "\tsent to eyeball at the combine stage: ", len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
+		print "\taccepted at the splitting stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA' and g_stats.retained_matches==retained])
+		print "\tsent to eyeball at the splitting stage: ", len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split' and g_stats.retained_matches==retained])
 	print '\n'
 
 print '-------------------------------------------------------------------------'
 print '+++++++++++TOTAL NUMBER OF SOURCES: %d +++++++++++++++++++++++++++++++' %len(bayes_comp)
 print '-------------------------------------------------------------------------'
-print "All sources accepted: " , len(sources)
+print "All sources accepted: " , len([1 for g_stats in sources_stats if g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
 print "\taccepted by position: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='position'])
 print "\taccepted by spectral: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='spectral'])
 print "\taccepted by combine: ", len([1 for g_stats in sources_stats if g_stats.accept_type=='combine'])
@@ -350,17 +352,17 @@ print "All sources rejected: " , len(rejected_stats)
 print "\trejected by position: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='position'])
 print "\trejected by spectral: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='spectral'])
 print "All sources retained to eyeball: " , len(eyeballed_stats)
-print "\tretained by position: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='position'])
-print "\tretained by spectral: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='spectral'])
+#print "\tretained by position: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='position'])
+#print "\tretained by spectral: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='spectral'])
 print "\tretained by combine: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='combine'])
-print "\tretained by splitting: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='splitA'])
+print "\tretained by splitting: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='split'])
 
 if options.verbose==True:
 	print_singles()
 	print_out(2,'Doubles','DOUBLE')
 	print_out(3,'Triples','TRIPLE')
+	print_out(4,'Quadruples','QUADRUPLES')
 	##ADD THESE AND ANY MORE TO YOU HEARTS DESIRE
-	#print_out(4,'Quadruples','QUADRUPLES')
 	#print_out(5,'Quintuples','QUINTUPLES')
 	#print_out(6,'Sextuples','SEXTUPLES')
 
