@@ -91,6 +91,7 @@ pol.chi_thresh = chi_thresh
 pol.jstat_thresh = jstat_thresh
 pol.num_freqs = num_freqs
 pol.split = split
+pol.matched_cats = matched_cats
 
 mkl.closeness = closeness
 mkl.high_prob = high_prob
@@ -210,7 +211,7 @@ for comp in bayes_comp:
 			accepted_prob = accepted_probs[dom_source]
 			dom_num = all_probs.index(accepted_prob)
 			
-			do_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom. source',len(matches),plot_num,plot_accept)
+			do_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_num,plot_accept)
 			
 		##If nothing dominates, send to check if a combined source works
 		else:

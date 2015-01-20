@@ -19,6 +19,7 @@ global chi_thresh
 global jstat_thresh
 global num_freqs
 global split
+global matched_cats
 
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
 def plot_errors(style,colour,freq,flux,ferr,name,size,ax):
@@ -28,7 +29,7 @@ def plot_errors(style,colour,freq,flux,ferr,name,size,ax):
 	
 def plot_pos(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
 	'''Plots a single point with x and y erros bars'''
-	if proj=='':
+	if proj==1.0:
 		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None')
 	else:
 		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None',transform=proj)
@@ -40,7 +41,7 @@ def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 	##Position Angle measures angle from direction to NCP towards increasing RA (east)
 	##Matplotlib plots the angle from the increasing y-axis toward DECREASING x-axis
 	##so have to put in the PA as negative
-	if proj=='':
+	if proj==1.0:
 		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA)
 	else:
 		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj)  ##minus???
@@ -52,34 +53,25 @@ def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 ##POSSIBLE EXTENSION - MAKE GENERIC SO IT CYCLES THROUGH SOME COLOURS, NOT SPECIFIED COLOURS
 ##FOR A PARTICULAR CATALOGUE
 def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
-	'''Plots a position and an ellipse of specific colours/labels for known catalogues'''
-	if cat=='mwacs':
-		p = plot_pos('o','#660066',ra,dec,rerr,derr,cat+' '+name,8,ax,proj)     
-		if PA!=-100000.0: 
-			plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'m','m',0.3,proj)
-		##Plot an error ellipse
-	elif cat=='sumss':
-		name = name[5:]
-		p = plot_pos('^','#990000',ra,dec,rerr,derr,cat+' '+name,8,ax,proj)
-		if PA!=-100000.0: plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'r','r',0.4,proj)
-	elif cat=='nvss':
-		p = plot_pos('x','#003300',ra,dec,rerr,derr,cat+' '+name,8,ax,proj)
-		if PA!='--': plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'g','#006600',0.5,proj)
-	elif cat=='vlssr':
-		name = name[5:]
-		p = plot_pos('*','#000099',ra,dec,rerr,derr,cat+' '+name,8,ax,proj)
-		if PA!=-100000.0: plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'b','b',0.45,proj)
-	elif cat=='mrc':
-		p = plot_pos('h','y',ra,dec,(rerr),derr,cat+' '+name,8,ax,proj)
-	elif cat=='culg':
-		p = plot_pos('D','k',ra,dec,rerr,derr,cat+' '+name,8,ax,proj)
+	
+	##Set up a load of markers, colours and alpha values
+	markers = ['o','*','h','^','x','p']
+	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
+	ell_colours1 = ['m','b','y','r','g','k']
+	ell_colours2 = ['m','b','y','r','#006600','k']
+	alphas = [0.3,0.45,0.5,0.4,0.5,0.4]
+	
+	##Plot the colour by index of catalogue in matched_cats 
+	ind = matched_cats.index(cat)
+	plot_pos(markers[ind],marker_colours[ind],ra,dec,rerr,derr,name,8,ax,proj)
+	if cat=='mrc':
+		pass
+	else:
 		if PA!=-100000.0:
 			if minor!=-100000.0:
 				if major!=-100000.0:
-					plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'k','k',0.4,proj) 
-	elif cat=='askap':
-		p = plot_pos('p','k',ra,dec,rerr,derr,name,8,ax,proj)
-		#if PA!=-100000.0: plt_ell(ra,dec,float(major),float(minor),float(PA),ax,'k','k',0.4,proj)
+					plt_ell(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
+					
 
 ##--------------------------------------------------------------------------------------------------------------------
 def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom_crit,comb_crit):
@@ -116,7 +108,7 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 			freqs.append(nu)
 			ferrs.append(ferr)
 			##Plot each source on the individual combo plot
-			plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,'')
+			plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,1.0)
 	##Sort the frequencies, fluxes and log them
 	log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 	sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
@@ -184,14 +176,14 @@ def make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main):
 	return ax_main,ax_spectral,tr_fk5,wcs
 
 def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA):
-		##Get the information and plot the positions and fluxs on the left hand side plots
+	'''Get the information and plot the positions and fluxs on the left hand side plots'''
+	markers = ['o','*','h','^','x','p']
+	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
+	marker_sizes = [8,10,10,9,9,10]
 	ras = []
 	decs = []
 	all_freqs = []
-	#all_fluxs = []
 	all_ferrs = []
-	#main_patches = []
-	#main_labels = []
 	for i in xrange(len(all_info)):
 		info=all_info[i].split()
 		cat = info[0]
@@ -224,25 +216,16 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 		plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax_main,tr_fk5)
 		
 		##See if one or more flux for a source, and plot fluxes with errorbars
+		cat_ind = matched_cats.index(cat)
 		if len(info)==14:
 			freq = float(info[6])
 			flux = float(info[7])
 			ferr = float(info[8])
-			if cat=='mwacs':
-				plot_errors('o','#660066',freq,flux,ferr,cat+' '+name,8,ax_spectral)
-			elif cat=='sumss':
-				plot_errors('^','#990000',freq,flux,ferr,cat+' '+name,9,ax_spectral)
-			elif cat=='nvss':
-				plot_errors('x','#003300',freq,flux,ferr,cat+' '+name,9,ax_spectral)
-			elif cat=='vlssr':
-				plot_errors('*','#000099',freq,flux,ferr,cat+' '+name,10,ax_spectral)
-			elif cat=='mrc':
-				plot_errors('h','y',freq,flux,ferr,cat+' '+name,10,ax_spectral)
-			elif cat=='askap':
-				plot_errors('p','k',freq,flux,ferr,cat+' '+name,10,ax_spectral)
+			plot_errors(markers[cat_ind],marker_colours[cat_ind],freq,flux,ferr,name,marker_sizes[cat_ind],ax_spectral)
 			all_fluxs.append(flux)
 			all_freqs.append(freq)
 			all_ferrs.append(ferr)
+		##If the catalogue has more than one frequency:
 		else:
 			extra = (len(info)-14) / 3
 			freqs = []
@@ -252,11 +235,10 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 				freqs.append(info[6+(3*i)])
 				fluxs.append(info[7+(3*i)])
 				ferrs.append(info[8+(3*i)])
-			if cat=='culg':
-				if fluxs[0]!=-100000.0: plot_errors('D','k',float(freqs[0]),float(fluxs[0]),float(ferrs[0]),cat+' '+name+' 80MHz',4,ax_spectral)
-				if fluxs[1]!=-100000.0: plot_errors('D','k',float(freqs[1]),float(fluxs[1]),float(ferrs[1]),cat+' '+name+' 160MHz',4,ax_spectral)
+			for flux in fluxs: 
+				all_fluxs.append(float(flux))
+				if float(flux)!=100000.0: plot_errors(markers[cat_ind],marker_colours[cat_ind],float(freq),float(flux),float(ferr),'%s-%.1fMHz' %(name,freq),marker_sizes[cat_ind],ax_spectral)
 			for freq in freqs: all_freqs.append(float(freq))
-			for flux in fluxs: all_fluxs.append(float(flux))
 			for ferr in ferrs: all_ferrs.append(float(ferr))
 				
 	##Add some labels and coord formatting to ax_main
@@ -348,8 +330,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	ra_main = float(info[2])
 	dec_main = float(info[4])
 	
-	main_dims = [0.1, 0.5, 0.28, 0.35]
-	spec_dims = [0.1,0.1,0.28,0.35]
+	main_dims = [0.16, 0.5, 0.29, 0.35]
+	spec_dims = [0.16, 0.1, 0.29, 0.35]
 	
 	ax_main,ax_spectral,tr_fk5,wcs = make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main)
 	
@@ -393,7 +375,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	match1 = matches[0].split()
 	src_g = mkl.get_srcg(match1)
 	
-	text_axes = fig.add_axes([0.39,0.5,0.125,0.35])
+	text_axes = fig.add_axes([0.45,0.5,0.125,0.35])
 	text_axes.axis('off')
 
 	##Plot the matching information
@@ -451,6 +433,10 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	##Fill the left hand plots with information goodness
 	fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA)
 	
+	fig.tight_layout()
+	fig.subplots_adjust(bottom=0.1)
+	fig.subplots_adjust(left=0.15)
+	
 	##Make room at the top of the plot for a legend for ax_main, make the legend
 	fig.subplots_adjust(top=0.85)
 	
@@ -459,10 +445,59 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	main_leg = fig.add_axes([0.05,0.87,0.9,0.05])
 	main_leg.axis('off')
-	main_leg.legend(main_handles,main_labels,loc='lower center',prop={'size':12},ncol=6) #,bbox_to_anchor=(0,1.02),
+	main_leg.legend(main_handles,main_labels,loc='lower center',prop={'size':12},ncol=8) #,bbox_to_anchor=(0,1.02),
 	
-	spec_leg = fig.add_axes([0.39,0.1,0.125,0.35])
+	spec_leg = fig.add_axes([0.45,0.1,0.125,0.35])
 	spec_leg.axis('off')
 	spec_leg.legend(spec_labels,leg_labels,loc='center',prop={'size':16},fancybox=True)
+	
+	##Create an axes to contain patches for an ellipse legend
+	patch_leg = fig.add_axes([0.02,0.1,0.06,0.75])
+	patch_leg.set_xticks([])
+	patch_leg.set_yticks([])
+	patch_leg.set_xticklabels([])
+	patch_leg.set_yticklabels([])
+	
+	##See what catalogues are present in the match
+	present_cats = [cat for cat in set(src_g.cats) if cat!='-100000.0']
+	##Scale accordingly
+	increment = 1.0/(2+len(present_cats))
+	ell_positions = np.arange(increment/2,1,increment)
+	
+	##Find the axes coord transform
+	patch_trans = patch_leg.transAxes
+	##Plot and name the resolution ellipse
+	ell = patches.Ellipse((0.5,ell_positions[-2]),0.9,increment-0.05,angle=0,
+		transform=patch_trans, linestyle='dashed',fc='none',lw=1.1,color='gray')
+	patch_leg.add_patch(ell)
+	patch_leg.text(0.5,ell_positions[-2],'Resolution\n+ error',
+		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
+	
+	##Plot and name the search ellipse
+	ell = patches.Ellipse((0.5,ell_positions[-1]),0.9,increment-0.05,angle=0,
+		transform=patch_trans, linestyle='dashdot',fc='none',lw=1.1,color='k')
+	patch_leg.add_patch(ell)
+	patch_leg.text(0.5,ell_positions[-1],'Search\nradius',
+		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
+	
+	##Use the same method as plot_all - for some reason was getting transform errors.
+	##so do it separately here (sigh)
+	markers = ['o','*','h','^','x','p']
+	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
+	ell_colours1 = ['m','b','y','r','g','k']
+	ell_colours2 = ['m','b','y','r','#006600','k']
+	alphas = [0.3,0.45,0.5,0.4,0.5,0.4]
+	for cat in present_cats:
+		col_ind = matched_cats.index(cat)
+		position_ind = present_cats.index(cat)
+		patch_leg.errorbar(0.5,ell_positions[position_ind],0.01,0.075,marker=markers[col_ind],ms=8,mfc=marker_colours[col_ind],
+			mec=marker_colours[col_ind],ecolor=marker_colours[col_ind],markeredgewidth=1,label='meh',linestyle='None',transform=patch_trans)
+		
+		ell = patches.Ellipse((0.5,ell_positions[position_ind]),0.9,increment-0.05,angle=0, transform=patch_trans,
+			fc=ell_colours1[col_ind],color=ell_colours2[col_ind],alpha=alphas[col_ind])
+		patch_leg.add_patch(ell)
+		
+		patch_leg.text(0.5,ell_positions[position_ind]-(increment/2-0.04),cat,
+			transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	
 	plt.show()
