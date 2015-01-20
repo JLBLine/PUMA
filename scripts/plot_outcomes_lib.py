@@ -67,11 +67,9 @@ def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 	if cat=='mrc':
 		pass
 	else:
-		if PA!=-100000.0:
-			if minor!=-100000.0:
-				if major!=-100000.0:
-					plt_ell(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
-					
+		if float(minor)!=-100000.0:
+			if float(major)!=-100000.0:
+				plt_ell(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
 
 ##--------------------------------------------------------------------------------------------------------------------
 def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom_crit,comb_crit):
