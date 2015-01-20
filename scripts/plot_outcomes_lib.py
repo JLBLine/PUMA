@@ -323,7 +323,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	gs = gridspec.GridSpec(height,2*width)
 	
 	##Need a big plot!
-	fig = plt.figure(figsize = (20,15))
+	fig = plt.figure(figsize = (18,11))
 
 	##Find out the ra,dec of the base catalogue source
 	info=all_info[0].split()
@@ -381,7 +381,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	##Plot the matching information
 	props = dict(boxstyle='round', facecolor='w',lw='1.5')
 	text_axes.text(0.5,0.5,'Match Criteria:\n%s\n\nDominace Test:\n%s\n\nOutcome:\n%s' %(match_crit,dom_crit,outcome),
-		bbox=props,transform=text_axes.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=18)
+		bbox=props,transform=text_axes.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	
 	all_fluxs = []
 	
@@ -449,10 +449,10 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	spec_leg = fig.add_axes([0.45,0.1,0.125,0.35])
 	spec_leg.axis('off')
-	spec_leg.legend(spec_labels,leg_labels,loc='center',prop={'size':16},fancybox=True)
+	spec_leg.legend(spec_labels,leg_labels,loc='center',prop={'size':14},fancybox=True)
 	
 	##Create an axes to contain patches for an ellipse legend
-	patch_leg = fig.add_axes([0.02,0.1,0.06,0.75])
+	patch_leg = fig.add_axes([0.015,0.1,0.06,0.75])
 	patch_leg.set_xticks([])
 	patch_leg.set_yticks([])
 	patch_leg.set_xticklabels([])
@@ -471,14 +471,14 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 		transform=patch_trans, linestyle='dashed',fc='none',lw=1.1,color='gray')
 	patch_leg.add_patch(ell)
 	patch_leg.text(0.5,ell_positions[-2],'Resolution\n+ error',
-		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
+		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=14)
 	
 	##Plot and name the search ellipse
 	ell = patches.Ellipse((0.5,ell_positions[-1]),0.9,increment-0.05,angle=0,
 		transform=patch_trans, linestyle='dashdot',fc='none',lw=1.1,color='k')
 	patch_leg.add_patch(ell)
 	patch_leg.text(0.5,ell_positions[-1],'Search\nradius',
-		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
+		transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=14)
 	
 	##Use the same method as plot_all - for some reason was getting transform errors.
 	##so do it separately here (sigh)
