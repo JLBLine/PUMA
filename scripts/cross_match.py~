@@ -125,6 +125,7 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	##user inputs
 	shape = data.shape
 	entries = shape[0]
+	print details[0]
 	names = data[details[0]]
 	RA = get_units(data,details[1],units[0],'angle',entries)
 	RA_error = get_units(data,details[2],units[1],'angle',entries)

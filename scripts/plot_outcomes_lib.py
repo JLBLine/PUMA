@@ -70,7 +70,7 @@ def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 		if float(minor)!=-100000.0:
 			if float(major)!=-100000.0:
 				plt_ell(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
-
+				
 ##--------------------------------------------------------------------------------------------------------------------
 def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom_crit,comb_crit):
 	'''Takes a string of information of a particular combination and uses it
@@ -266,11 +266,14 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	ax_spectral.set_yticks(flux_ticks,minor=False)
 	ax_spectral.set_yticklabels(['%.3f' %flux for flux in list(flux_ticks)],fontsize=14.0)
 
-	##Set some limits on the spextral axis (work them out in log space)
-	freq_min = 10**(np.log10(min(all_freqs))-0.1)
-	freq_max = 10**(np.log10(max(all_freqs))+0.1)
-	flux_min = 10**(np.log10(min(all_fluxs))-0.2)
-	flux_max = 10**(np.log10(max(all_fluxs))+0.2)
+	##Set some limits on the spextral axis1
+	freq_min = min(all_freqs) - 5
+	freq_max = max(all_freqs) + 5
+	flux_min = min(all_fluxs) - (max(all_fluxs)-min(all_fluxs))/10
+	flux_max = max(all_fluxs) + (max(all_fluxs)-min(all_fluxs))/10
+	
+	#print freq_min,freq_max,flux_min,flux_max
+	
 	ax_spectral.set_xlim(freq_min,freq_max)
 	ax_spectral.set_ylim(flux_min,flux_max)
 
@@ -359,6 +362,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 				ax = plt.subplot(gs[i,j])
 				ax.set_xticklabels([])
 				ax.set_yticklabels([])
+				##TODO - if plot centred on or close to RA,Dec = 0,0 then going to get wrapping problems. Should be able to pull the need
+				##for a wrap from ra_down_lim,ra_up_lim - one should be <0.0, or >360.0. Need to happen inside plot_ind
 				prob,resid,spec_plot,params = plot_ind(match,ax,ind,ax_spectral,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,dom_crit,outcome)
 				if spec_plot=='na':
 					pass
