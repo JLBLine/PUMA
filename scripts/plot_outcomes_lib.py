@@ -266,13 +266,15 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	ax_spectral.set_yticks(flux_ticks,minor=False)
 	ax_spectral.set_yticklabels(['%.3f' %flux for flux in list(flux_ticks)],fontsize=14.0)
 
-	##Set some limits on the spextral axis1
-	freq_min = min(all_freqs) - 5
-	freq_max = max(all_freqs) + 5
-	flux_min = min(all_fluxs) - (max(all_fluxs)-min(all_fluxs))/10
-	flux_max = max(all_fluxs) + (max(all_fluxs)-min(all_fluxs))/10
+	##Set some limits on the spextral axis - need to do it in logspace,
+	##and set the edge gaps based on the data
+	freq_delta = abs(np.log10(max(all_freqs))-np.log10(min(all_freqs)))/10.0
+	flux_delta = abs(np.log10(max(all_fluxs))-np.log10(min(all_fluxs)))/10.0
 	
-	#print freq_min,freq_max,flux_min,flux_max
+	freq_max = 10**(np.log10(max(all_freqs))+freq_delta)
+	freq_min = 10**(np.log10(min(all_freqs))-freq_delta)
+	flux_max = 10**(np.log10(max(all_fluxs))+flux_delta)
+	flux_min = 10**(np.log10(min(all_fluxs))-flux_delta)
 	
 	ax_spectral.set_xlim(freq_min,freq_max)
 	ax_spectral.set_ylim(flux_min,flux_max)
