@@ -454,7 +454,16 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	spec_leg = fig.add_axes([0.45,0.1,0.125,0.35])
 	spec_leg.axis('off')
-	spec_leg.legend(spec_labels,leg_labels,loc='center',prop={'size':14},fancybox=True)
+
+	##Stop the legend from having so many entries that it goes off the plot	
+	if len(spec_labels)>11:
+		trim_labels = spec_labels[:10]
+		trim_labels.append(spec_labels[-1])
+		trim_legs = leg_labels[:10]
+		trim_legs.append(leg_labels[-1])
+		spec_leg.legend(trim_labels,trim_legs,loc='center',prop={'size':14},fancybox=True)
+	else:
+		spec_leg.legend(spec_labels,leg_labels,loc='center',prop={'size':14},fancybox=True)
 	
 	##Create an axes to contain patches for an ellipse legend
 	patch_leg = fig.add_axes([0.015,0.1,0.06,0.75])
