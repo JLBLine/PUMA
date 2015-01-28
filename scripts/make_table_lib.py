@@ -552,7 +552,6 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		
 		if split != 0:
 			##If a split source, create however many new sources are needed
-			#else:
 			if big_sep=='yes':
 			##Test to see if any of the new components fail a spec test
 			##If so, flag out for eyeballing
@@ -595,9 +594,6 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 							new_g.intercept_err = set_bse[set_ind][1]
 							
 						split_sources.append(new_g)
-
-		#else:
-	
 			
 		##If plotting need a bunch specific info
 		if plot=='plot=yes':
@@ -624,7 +620,6 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				else:
 					##Return all of the components
 					return dom_crit, split_sources, comb_jstat, comb_chi_red
-	
 	
 	##If it fails, still return all the info to the plot so we can see what's going on
 	else:
@@ -714,11 +709,9 @@ def matches_retained(src_all,matches):
 		##need to convert closeness in to an RA offset, due to spherical trigonometry
 		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(src_all.decs[0]*dr)**2)/np.cos(src_all.decs[0]*dr)**2)/dr
 		
-		#ra_dist = src_all.ras[0] - src_all.ras[ind]
 		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
 		ra_dist = arcdist(src_all.ras[0],src_all.ras[ind],src_all.decs[0],src_all.decs[0])
 		dec_dist = src_all.decs[0] - src_all.decs[ind]
-		#ra_axis = src_all.rerrs[0] + closeness
 		ra_axis = src_all.rerrs[0] + abs(delta_RA)
 		dec_axis = src_all.derrs[0] + closeness
 

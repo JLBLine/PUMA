@@ -164,14 +164,38 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	dom_num = match_probs.index(prob)+1
 	match_crit = "Combination (%d)\npossible\n%s repeated cats" %(dom_num,repeated_cats)
 	
-	##Make a list of the distance of all the sources from base source
-	## for the given combination (info in src_g)
-	ra_dists = [abs(ra - src_all.ras[0]) for ra in src_g.ras if ra!=-100000.0]
-	dec_dists = [abs(dec - src_all.decs[0]) for dec in src_g.decs if dec!=-100000.0]
+	##Check to see if all matched sources are within the closeness test - create an
+	##error ellipse by combined closeness with base cat error
+	##Need to convert closeness in to an RA offset, due to spherical trigonometry
+	dr=np.pi/180.0
+	delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(src_all.decs[0]*dr)**2)/np.cos(src_all.decs[0]*dr)**2)/dr
 	
-	##Fail the positional test if a source is outside of the resolution plus position error
+	##Make a list of the ras and decs of the sources to distance test
+	ras_test = [ra for ra in src_g.ras if ra!=-100000.0]
+	dec_test = [dec for dec in src_g.decs if dec!=-100000.0]
+	
+	small_test = []
+	for ra,dec in zip(ras_test,dec_test):
+		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
+		ra_dist = mkl.arcdist(src_all.ras[0],ra,src_all.decs[0],src_all.decs[0])
+		dec_dist = src_all.decs[0] - dec
+		ra_axis = src_all.rerrs[0] + abs(delta_RA)
+		dec_axis = src_all.derrs[0] + closeness
+
+		##Test to see if the source lies with an error ellipse created using semi-major
+		##and minor axes defined by the ra and dec error of the base cat + half the resolution
+		##of the base cat (closeness)
+		ell_test = (ra_dist/ra_axis)**2 + (dec_dist/dec_axis)**2
+		if ell_test <= 1:
+			small_test.append('yes')
+		else:
+			##Otherwise, fails
+			small_test.append('no')
+			#no_names.append(repeat_name)  #Note the name of the sources that are far away
+	
+	#Fail the positional test if a source is outside of the resolution plus position error
 	close_test = 'passed'
-	if max(ra_dists)>(closeness+src_all.rerrs[0]) or max(dec_dists)>(closeness+src_all.derrs[0]): close_test = 'failed'
+	if 'no' in small_test: close_test = 'failed'
 	
 	##If prob is higher than threshold, ignore position of sources and accept the match
 	if prob>high_prob:
