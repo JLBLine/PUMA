@@ -82,7 +82,7 @@ class source_single:
 		
 ##The way STILTS is run in cross_match.py means sources in the matched catalogues
 ##may be matched to more than one base catalogue source. Read through all the matches
-##and check for any repeated matched sources; if they exist, chose the match with the 
+##and check for any repeated matched sources; if they exist, choose the match with the 
 ##smallest angular separation. Delete the other matched row
 
 ##Will contain lists of rows to be skipped that correspond to each catalogue in matched_cats
@@ -137,7 +137,16 @@ for cat,skip in zip(matched_cats,skip_rows):
 		scaled_source_nums.append(match_dens)
 	else:
 		scaled_source_nums.append(match_dens)
+	##If any of the errors are negative or zero, the whole match stops and fails - 
+	##take an average of rerr, derr and ferr here, and subsitute that in later if
+	##needs be
+	base_rerr_avg = np.mean(data['%s_e_RAJ2000' %primary_cat])
+	base_derr_avg = np.mean(data['%s_e_DEJ2000' %primary_cat])
+	base_ferr_avg = np.mean(data['%s_e_S%d' %(primary_cat,float(primary_freq))])
 	
+	cat_rerr_avg = np.mean(data['%s_e_RAJ2000' %cat])
+	cat_derr_avg = np.mean(data['%s_e_DEJ2000' %cat])
+	cat_ferr_avg = np.mean(data['%s_e_S%d' %(cat,float(matched_freqs[matched_cats.index(cat)]))])
 	##(For all rows of data)
 	for s_row in xrange(rows):
 		##If in the skip list, it's a repeated source, so don't add it to the matched data
@@ -152,11 +161,24 @@ for cat,skip in zip(matched_cats,skip_rows):
 				src.cats.append(primary_cat)
 				src.names.append(str(row[0]))
 				src.ras.append(str(row[1]))
-				src.rerrs.append(str(row[2]))
 				src.decs.append(str(row[3]))
-				src.derrs.append(str(row[4]))
 				src.fluxs.append(str(row[5]))
-				src.ferrs.append(str(row[6]))
+				##Test the errors for zero or neg values,
+				##and insert a proxy error if so
+				if float(row[2])<=0.0:
+					src.rerrs.append(str(base_rerr_avg))
+				else:
+					src.rerrs.append(str(row[2]))
+				
+				if float(row[4])<=0.0:
+					src.derrs.append(str(base_derr_avg))
+				else:
+					src.derrs.append(str(row[4]))
+				
+				if float(row[6])<=0.0:
+					src.ferrs.append(str(base_ferr_avg))
+				else:
+					src.ferrs.append(str(row[6]))
 				src.majors.append(str(row[7]))
 				src.minors.append(str(row[8]))
 				src.PAs.append(str(row[9]))
@@ -187,6 +209,17 @@ for cat,skip in zip(matched_cats,skip_rows):
 			src.rerrs.append(str(row[14]))
 			src.decs.append(str(row[15]))
 			src.derrs.append(str(row[16]))
+			##Test the errors for zero or neg values,
+			##and insert a proxy error if so
+			if float(row[14])<=0.0:
+					src.rerrs.append(str(cat_rerr_avg))
+			else:
+				src.rerrs.append(str(row[14]))
+			
+			if float(row[16])<=0.0:
+				src.derrs.append(str(cat_derr_avg))
+			else:
+				src.derrs.append(str(row[16]))
 			src.majors.append(str(row[19]))
 			src.minors.append(str(row[20]))
 			src.PAs.append(str(row[21]))
@@ -207,18 +240,27 @@ for cat,skip in zip(matched_cats,skip_rows):
 				fluxss = []
 				ferrss = []
 				fluxss.append(str(row[17]))
-				ferrss.append(str(row[18]))
+				if float(row[18])<=0.0:
+					ferrss.append(str(cat_ferr_avg))
+				else:
+					ferrss.append(str(row[18]))
 				freqss.append(str(cat_freqs[0]))
 				for i in xrange(len(cat_freqs)-1):
 					fluxss.append(str(row[24+(i*1)]))
-					ferrss.append(str(row[25+(i*1)]))
+					if float(row[25+(i*1)])<=0.0:
+						ferrss.append(str(cat_ferr_avg))
+					else:
+						ferrss.append(str(row[25+(i*1)]))
 					freqss.append(str(cat_freqs[i+1]))
 				src.fluxs.append(fluxss)
 				src.freqs.append(freqss)
 				src.ferrs.append(ferrss)
 			else:
 				src.fluxs.append(str(row[17]))
-				src.ferrs.append(str(row[18]))
+				if float(row[18])<=0.0:
+					src.ferrs.append(str(cat_ferr_avg))
+				else:
+					src.ferrs.append(str(row[18]))
 				src.freqs.append(str(cat_freq))
 			
 ##Add errors in quadrature
