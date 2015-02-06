@@ -285,6 +285,10 @@ def calc_dist(RA1,RA2,Dec1,Dec2):
 	in2 = (90.0 - Dec2)*dr
 	RA_d = (RA1 - RA2)*dr
 	cosalpha = np.cos(in1)*np.cos(in2) + np.sin(in1)*np.sin(in2)*np.cos(RA_d)
+	##Sometimes get floating point errors if two sources at exactly
+	##the same position, so account for this:
+	if cosalpha>1.0: cosalpha = 1.0
+	elif cosalpha<-1.0: cosalpha = -1.0
 	alpha = np.arccos(cosalpha)
 	return alpha
 
