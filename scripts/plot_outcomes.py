@@ -35,6 +35,9 @@ parser.add_option('-r', '--resolution',
 parser.add_option('-s', '--split',default=0, 
 	help='The resolution ("deg:arcmin:arcsec") over which to split combined sources')
 
+parser.add_option('-z', '--num_combinations', default=0,
+	help='Plot the results of a certain number of combinations')
+
 parser.add_option('-n', '--num_matches', default=0,
 	help='Plot the results of a certain number of matches')
 
@@ -54,7 +57,8 @@ options, args = parser.parse_args()
 
 ##Set up a bunch of initial parameters-----------------------------------------
 ##-----------------------------------------------------------------------------
-plot_num=int(options.num_matches)
+plot_num_combs = int(options.num_combinations)
+plot_num_matches = int(options.num_matches)
 
 plot_reject = options.reject
 plot_eyeball = options.eyeball
@@ -105,21 +109,48 @@ mkl.jstat_thresh = jstat_thresh
 mkl.num_freqs = num_freqs
 mkl.split = split
 
-def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_matches,plot_num,truth_test,src_all):
+def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all):
+	##Work out how many cataloges are present
+	present_cats = [cat for cat in src_all.cats if cat!='-100000.0']
+	num_matches = len(set(present_cats))
 	if queries[0] == '0':
 		if plot_all:
-			if plot_num == 0:
-				pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-			else:
-				if num_matches == plot_num:
-					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-		else:
-			if truth_test:
-				if plot_num == 0:
+			if plot_num_matches == 0:
+				if plot_num_combs == 0:
 					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 				else:
-					if num_matches == plot_num:
+					if num_combs == plot_num_combs: 
 						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+					else:
+						pass
+			else:
+				if num_matches == plot_num_matches:
+					if plot_num_combs == 0:
+						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+					else:
+						if num_combs == plot_num_combs: 
+							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+						else:
+							pass
+		else:
+			if truth_test:
+				if plot_num_matches == 0:
+					if plot_num_combs == 0:
+						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+					else:
+						if num_combs == plot_num_combs: 
+							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+						else:
+							pass
+				else:
+					if num_matches == plot_num_matches:
+						if plot_num_combs == 0:
+							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+						else:
+							if num_combs == plot_num_combs: 
+								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							else:
+								pass
 			else:
 				pass
 	else:
@@ -178,18 +209,18 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	
 	##If prob is higher than threshold, ignore position of sources and accept the match
 	if prob>high_prob:
-		do_plot(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$',num_matches,plot_num,plot_accept,src_all)
+		do_plot(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$',num_matches,plot_accept,src_all)
 	else:
 		##look to see if all sources are within the resolution of the
 		##base catalogue or above some probability theshold, if so check with a spec test else reject them
 		if close_test=='passed' or prob>low_prob:  
 			##IF below eith threshold, append with the applicable fit label
 			if jstat_resids[0]<=jstat_thresh or chi_resids[0]<=chi_thresh:
-				do_plot(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec',num_matches,plot_num,plot_accept,src_all)
+				do_plot(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec',num_matches,plot_accept,src_all)
 			else:
-				do_plot(comp,accepted_inds,match_crit,'Spec. failed','Reject by spec',num_matches,plot_num,plot_reject,src_all)
+				do_plot(comp,accepted_inds,match_crit,'Spec. failed','Reject by spec',num_matches,plot_reject,src_all)
 		else:
-			do_plot(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_l$',num_matches,plot_num,plot_reject,src_all)
+			do_plot(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_l$',num_matches,plot_reject,src_all)
 
 ##Open the input text file (output from calculate_bayes.py)
 bayes_comp = open(options.input_bayes).read().split('END_GROUP')
@@ -225,7 +256,7 @@ for comp in bayes_comp:
 	
 	##If no combinations are possible, reject all info (goes into the eyeball document)
 	if len(accepted_matches)==0:
-		do_plot(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A',len(matches),plot_num,plot_reject,src_all)
+		do_plot(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A',len(matches),plot_reject,src_all)
 		
 	##If just one combo positionally possible, do a single combo check
 	elif len(accepted_matches)==1:
@@ -246,13 +277,13 @@ for comp in bayes_comp:
 			accepted_prob = accepted_probs[dom_source]
 			dom_num = all_probs.index(accepted_prob)
 			
-			do_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_num,plot_accept,src_all)
+			do_plot(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_accept,src_all)
 			
 		##If nothing dominates, send to check if a combined source works
 		else:
 			comb_crit, comb_source, comb_jstat, comb_chi_red = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=no',len(matches))
 			
 			if 'Accepted' in comb_crit:
-				do_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_num,plot_accept,src_all)
+				do_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_accept,src_all)
 			else:
-				do_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_num,plot_eyeball,src_all)
+				do_plot(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_eyeball,src_all)

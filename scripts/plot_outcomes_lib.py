@@ -21,6 +21,15 @@ global num_freqs
 global split
 global matched_cats
 
+##Set up a load of markers, colours and alpha values
+markers = ['o','*','h','^','x','p','D','H','>','<','8','v','d']
+marker_colours = ['#660066','#000099','y','#990000','#003300','k','#B39EB5','#DEA5A4','#C23B22','#AEC6CF','#77DD77']
+ell_colours1 = ['m','b','y','r','g','k','#B39EB5','#DEA5A4','#C23B22','#AEC6CF','#77DD77']
+ell_colours2 = ['m','b','y','r','#006600','k','#B39EB5','#DEA5A4','#C23B22','#AEC6CF','#77DD77']
+alphas = [0.3,0.45,0.5,0.4,0.5,0.4,0.3,0.3,0.3,0.3,0.3,0.3]
+marker_sizes = [8,10,10,9,9,10,11,11,11,11,11,11,11]
+
+
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
 def plot_errors(style,colour,freq,flux,ferr,name,size,ax):
 	'''Plots errorbars and markers with no line'''
@@ -53,14 +62,6 @@ def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 ##POSSIBLE EXTENSION - MAKE GENERIC SO IT CYCLES THROUGH SOME COLOURS, NOT SPECIFIED COLOURS
 ##FOR A PARTICULAR CATALOGUE
 def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
-	
-	##Set up a load of markers, colours and alpha values
-	markers = ['o','*','h','^','x','p']
-	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
-	ell_colours1 = ['m','b','y','r','g','k']
-	ell_colours2 = ['m','b','y','r','#006600','k']
-	alphas = [0.3,0.45,0.5,0.4,0.5,0.4]
-	
 	##Plot the colour by index of catalogue in matched_cats 
 	ind = matched_cats.index(cat)
 	plot_pos(markers[ind],marker_colours[ind],ra,dec,rerr,derr,name,8,ax,proj)
@@ -175,9 +176,6 @@ def make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main):
 
 def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA):
 	'''Get the information and plot the positions and fluxs on the left hand side plots'''
-	markers = ['o','*','h','^','x','p']
-	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
-	marker_sizes = [8,10,10,9,9,10]
 	ras = []
 	decs = []
 	all_freqs = []
@@ -496,11 +494,6 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	##Use the same method as plot_all - for some reason was getting transform errors.
 	##so do it separately here (sigh)
-	markers = ['o','*','h','^','x','p']
-	marker_colours = ['#660066','#000099','y','#990000','#003300','k']
-	ell_colours1 = ['m','b','y','r','g','k']
-	ell_colours2 = ['m','b','y','r','#006600','k']
-	alphas = [0.3,0.45,0.5,0.4,0.5,0.4]
 	for cat in present_cats:
 		col_ind = matched_cats.index(cat)
 		position_ind = present_cats.index(cat)

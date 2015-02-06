@@ -117,10 +117,10 @@ pos_match = [source.SI for source in sources if source.type_match=='position']
 spec_match = [source.SI for source in sources if source.type_match=='spectral']
 comb_match = [source.SI for source in sources if source.type_match=='combine']
 split_match = [source.SI for source in sources if source.type_match=='splitA']
-hist(pos_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[0],linewidth=3.0,label='Positional match \n(%d sources)' %len(pos_match))
-hist(spec_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[1],linewidth=3.0,label='Spectral match \n(%d sources)' %len(spec_match))
-hist(comb_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[2],linewidth=3.0,label='Combined match \n(%d sources)' %len(comb_match))
-hist(split_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[3],linewidth=3.0,label='Split match \n(%d sources)' %len(split_match))
+if len(pos_match)!=0: hist(pos_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[0],linewidth=3.0,label='Positional match \n(%d sources)' %len(pos_match))
+if len(spec_match)!=0: hist(spec_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[1],linewidth=3.0,label='Spectral match \n(%d sources)' %len(spec_match))
+if len(comb_match)!=0: hist(comb_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[2],linewidth=3.0,label='Combined match \n(%d sources)' %len(comb_match))
+if len(split_match)!=0: hist(split_match,bins='blocks',ax=ax4,histtype='step',normed=True,color=colours[3],linewidth=3.0,label='Split match \n(%d sources)' %len(split_match))
 
 ##Tidy up the labels and add legends
 for ax,label in zip([ax1,ax2,ax3,ax4],[r'$(a)$',r'$(b)$',r'$(c)$',r'$(d)$']):
