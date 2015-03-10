@@ -107,8 +107,8 @@ hist(bad_fit_SIs,bins='blocks',ax=ax2,histtype='step',normed=True,color=colours[
 ax3 = fig_hist.add_subplot(223)
 two_cat_SIs = [source.SI for source in sources if source.num_cats==2]
 nottwo_cat_SIs = [source.SI for source in sources if source.num_cats!=2]
-hist(two_cat_SIs,bins='blocks',ax=ax3,histtype='step',normed=True,color=colours[0],linewidth=3.0,label='More than two \ncatalogues \n(%d sources)' %len(two_cat_SIs))
-hist(nottwo_cat_SIs,bins='blocks',ax=ax3,histtype='step',normed=True,color=colours[1],linewidth=3.0,label='Only two \ncatalogues \n(%d sources)' %len(nottwo_cat_SIs))
+hist(two_cat_SIs,bins='blocks',ax=ax3,histtype='step',normed=True,color=colours[0],linewidth=3.0,label='Only two \ncatalogues \n(%d sources)' %len(two_cat_SIs))
+hist(nottwo_cat_SIs,bins='blocks',ax=ax3,histtype='step',normed=True,color=colours[1],linewidth=3.0,label='More than two \ncatalogues \n(%d sources)' %len(nottwo_cat_SIs))
 
 ##Compare the SIs for the different types of matches performed by PUMA
 ##-----------------------------------------------------------------------------------------------------------------------
