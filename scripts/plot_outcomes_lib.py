@@ -91,6 +91,7 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 		ind = starts[j]
 		cat = info[ind]
 		if cat!='-100000.0':
+			#num_freq = num_freqs[j]
 			freq = num_freqs[j]
 			name = info[ind+1]
 			ra = float(info[ind+2])
@@ -98,17 +99,24 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 			dec = float(info[ind+4])
 			derr = float(info[ind+5])
 			nu = float(info[ind+6])
-			flux = float(info[ind+7])
-			ferr = float(info[ind+8])/flux
+			#flux = float(info[ind+7])
+			#ferr = float(info[ind+8])/flux
+			for k in xrange(freq):
+				if info[7+ind+(3*k)]!='-100000.0':
+					freqs.append(float(info[6+ind+(3*k)]))
+					fluxs.append(float(info[7+ind+(3*k)]))
+					ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
+			
 			major = info[ind+9+((freq-1)*3)]
 			minor = info[ind+10+((freq-1)*3)]
 			PA = info[ind+11+((freq-1)*3)]
-			fluxs.append(flux)
-			freqs.append(nu)
-			ferrs.append(ferr)
+			#fluxs.append(flux)
+			#freqs.append(nu)
+			#ferrs.append(ferr)
 			##Plot each source on the individual combo plot
 			plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,1.0)
 	##Sort the frequencies, fluxes and log them
+	
 	log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 	sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
 	log_freqs = np.log(sorted(freqs))
@@ -228,14 +236,17 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 			fluxs = []
 			ferrs = []
 			for i in xrange(extra+1):
-				freqs.append(info[6+(3*i)])
-				fluxs.append(info[7+(3*i)])
-				ferrs.append(info[8+(3*i)])
-			for flux in fluxs: 
-				all_fluxs.append(float(flux))
-				if float(flux)!=100000.0: plot_errors(markers[cat_ind],marker_colours[cat_ind],float(freq),float(flux),float(ferr),'%s-%.1fMHz' %(name,freq),marker_sizes[cat_ind],ax_spectral)
+				if info[7+(3*i)]!='-100000.0':
+					freqs.append(info[6+(3*i)])
+					fluxs.append(info[7+(3*i)])
+					ferrs.append(info[8+(3*i)])
+			
+			for i in xrange(len(fluxs)):
+				all_fluxs.append(float(fluxs[i]))
+				plot_errors(markers[cat_ind],marker_colours[cat_ind],float(freqs[i]),float(fluxs[i]),float(ferrs[i]),'%s-%.1fMHz' %(name,freq),marker_sizes[cat_ind],ax_spectral)
 			for freq in freqs: all_freqs.append(float(freq))
 			for ferr in ferrs: all_ferrs.append(float(ferr))
+				
 				
 	##Add some labels and coord formatting to ax_main
 	ra_ax = ax_main.coords[0]

@@ -155,8 +155,11 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	and determines whether they are a match or not - Algorithm 2 in the write up'''
 	match = accepted_matches[0]
 	prob = float(match[-1])
+	
 	##calculate_resids needs a list of matches - calculate parameters
 	jstat_resids,params,bses,chi_resids = mkl.calculate_resids([match])
+
+	##Gather source information
 	src_g = mkl.get_srcg(match)
 	
 	##Play the prob trick again to work out which match has been accepted
@@ -452,7 +455,7 @@ t.add_column('updated_RA_err',np.array(updated_rerrs),description='Error on Upda
 t.add_column('updated_DEC_err',np.array(updated_derrs),description='Error on Updated Declination of source',unit='deg')
 t.add_column('original_RA_J2000',np.array(original_ras),description='Original Right ascension of source',unit='deg')
 t.add_column('original_DEC_J2000',np.array(original_decs),description='Original Declination of source',unit='deg')
-
+		
 ##For every catalogue in the match
 for cat in xrange(len(num_freqs)):
 	##See how many frequencies that source has
@@ -461,8 +464,8 @@ for cat in xrange(len(num_freqs)):
 	for freq in xrange(num_freq):
 		fluxs = np.array([src.fluxs[cat][freq] for src in sources])
 		ferrs = np.array([src.ferrs[cat][freq] for src in sources])
-		t.add_column('S_%.f' %cat_freqs[cat][freq],fluxs,description='Flux at %sMHz' %cat_freqs[cat][freq],mask=fluxs==-100000.0, fill='--',unit='Jy')
-		t.add_column('e_S_%.f' %cat_freqs[cat][freq],ferrs,description='Flux error at %sMHz' %cat_freqs[cat][freq],mask=ferrs==-100000.0, fill='--',unit='Jy')
+		t.add_column('S_%.1f' %float(cat_freqs[cat][freq]),fluxs,description='Flux at %.1fMHz' %float(cat_freqs[cat][freq]),mask=fluxs==-100000.0, fill=None,unit='Jy')
+		t.add_column('e_S_%.1f' %float(cat_freqs[cat][freq]),ferrs,description='Flux error at %.1fMHz' %float(cat_freqs[cat][freq]),mask=ferrs==-100000.0, fill=None,unit='Jy')
 
 ##Extrapolate the base catalogue frequency flux density, using the fitted values for late comparison
 extrap_freq = cat_freqs[0][0]
@@ -485,15 +488,15 @@ intercept_errs = np.array([source.intercept_err for source in sources])
 SI_err_mask = [err==float('inf') or err==float('nan') for err in SI_errs]
 
 t.add_column('SI',SIs,description='Spectral Index of Fit')
-t.add_column('e_SI',SI_errs,description='Std error on Spectral Index of Fit',mask=SI_err_mask,fill='--')
+t.add_column('e_SI',SI_errs,description='Std error on Spectral Index of Fit',mask=SI_err_mask,fill=None)
 t.add_column('Intercept',intercepts,description='Intercept of Fit')
-t.add_column('e_Intercept',intercept_errs,description='Std error on Intercept of Fit',mask=SI_err_mask,fill='--')
+t.add_column('e_Intercept',intercept_errs,description='Std error on Intercept of Fit',mask=SI_err_mask,fill=None)
 
 extrap_base = np.array([extrap(extrap_freq,source.SI,source.intercept) for source in sources])
 extrap_base_err = np.array([extrap_error(extrap_freq,extrap_flux,source.intercept_err,source.SI_err) for extrap_flux, source in zip(extrap_base,sources)])
 
 t.add_column('S_%.1f_ext' %extrap_freq,extrap_base,unit='Jy',description='Flux at extrapolted to base catalogue frequency using fitted values')
-t.add_column('e_S_%.1f_ext' %extrap_freq,extrap_base_err,unit='Jy',description='Error on flux extrapolted to base frequency using error on fitted values',mask=SI_err_mask,fill='--')
+t.add_column('e_S_%.1f_ext' %extrap_freq,extrap_base_err,unit='Jy',description='Error on flux extrapolated to base frequency using error on fitted values',mask=SI_err_mask,fill=None)
 
 ##See how many unique catalogues there are
 num_cats = [len(set([cat for cat in source.cats if cat!='-100000.0'])) for source in sources]

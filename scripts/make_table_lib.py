@@ -270,15 +270,18 @@ def calculate_resids(matches):
 		freqs = []
 		fluxs = []
 		ferrs = []
+		##For each frequency in each catalogue, see if there is an flux and append if there
 		for j in xrange(len(starts)): 
 			num_freq = num_freqs[j]
 			ind = starts[j]
 			cat = info[ind]
 			if cat!='-100000.0':
 				for k in xrange(num_freq):
-					freqs.append(float(info[6+ind+(3*k)]))
-					fluxs.append(float(info[7+ind+(3*k)]))
-					ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
+					if info[7+ind+(3*k)]!='-100000.0':
+						freqs.append(float(info[6+ind+(3*k)]))
+						fluxs.append(float(info[7+ind+(3*k)]))
+						ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
+					
 		log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 		sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
 		log_freqs = np.log(sorted(freqs))

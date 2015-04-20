@@ -146,7 +146,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 	
 	cat_rerr_avg = np.mean(data['%s_e_RAJ2000' %cat])
 	cat_derr_avg = np.mean(data['%s_e_DEJ2000' %cat])
-	cat_ferr_avg = np.mean(data['%s_e_S%d' %(cat,float(matched_freqs[matched_cats.index(cat)]))])
+	cat_ferr_avg = np.mean(data['%s_e_S%d' %(cat,float(matched_freqs[matched_cats.index(cat)].split('~')[0]))])
 	##(For all rows of data)
 	for s_row in xrange(rows):
 		##If in the skip list, it's a repeated source, so don't add it to the matched data
@@ -175,7 +175,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 				else:
 					src.derrs.append(str(row[4]))
 				
-				if float(row[6])<=0.0:
+				if -100000.0<float(row[6])<=0.0:
 					src.ferrs.append(str(base_ferr_avg))
 				else:
 					src.ferrs.append(str(row[6]))
@@ -239,29 +239,38 @@ for cat,skip in zip(matched_cats,skip_rows):
 				freqss = []
 				fluxss = []
 				ferrss = []
+				
+				freqss.append(str(cat_freqs[0]))
 				fluxss.append(str(row[17]))
-				if float(row[18])<=0.0:
+				if -100000.0<float(row[18])<=0.0:
 					ferrss.append(str(cat_ferr_avg))
 				else:
 					ferrss.append(str(row[18]))
-				freqss.append(str(cat_freqs[0]))
 				for i in xrange(len(cat_freqs)-1):
-					fluxss.append(str(row[24+(i*1)]))
-					if float(row[25+(i*1)])<=0.0:
+					freqss.append(str(cat_freqs[i+1]))
+					fluxss.append(str(row[24+(2*i)]))
+					if -100000.0<float(row[25+(2*i)])<=0.0:
 						ferrss.append(str(cat_ferr_avg))
 					else:
-						ferrss.append(str(row[25+(i*1)]))
-					freqss.append(str(cat_freqs[i+1]))
+						ferrss.append(str(row[25+(2*i)]))
+					
 				src.fluxs.append(fluxss)
 				src.freqs.append(freqss)
 				src.ferrs.append(ferrss)
+				
+				#print freqss
+				#print fluxss
+				#print ferrss
+				
+				
 			else:
 				src.fluxs.append(str(row[17]))
-				if float(row[18])<=0.0:
+				if -100000.0<float(row[18])<=0.0:
 					src.ferrs.append(str(cat_ferr_avg))
 				else:
 					src.ferrs.append(str(row[18]))
 				src.freqs.append(str(cat_freq))
+				
 			
 ##Add errors in quadrature
 def error(o1,o2):
