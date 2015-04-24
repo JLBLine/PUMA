@@ -307,7 +307,9 @@ for comp in bayes_comp:
 	else:
 		##Check for a dominant source. The combination must be the only one with high position prob,
 		##all others with low positional proability, and must dominate spectrally
-		dom_source = mkl.spec_pos_agree(jstats,chi_reds,accepted_probs)
+		num_cat = len(set([cat for cat in src_all.cats if cat!='-100000.0']))
+		
+		dom_source = mkl.spec_pos_agree(jstats,chi_reds,accepted_probs,num_cat)
 		src_g = mkl.get_srcg(accepted_matches[0])
 		##If it finds a dominant source, accept it - counts as a spectral match 
 		if dom_source!='none':
