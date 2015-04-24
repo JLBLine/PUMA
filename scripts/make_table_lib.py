@@ -648,24 +648,29 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		else:
 			return dom_crit, 'nyope', comb_jstat, comb_chi_red
 			
-def spec_pos_agree(jstats,chi_resids,pos_probs):
-	##SHOULD WE TESTe TO SEE IF DOM_SOURCE HAS LESS RESIDS THAN A COMBO?
+def spec_pos_agree(jstats,chi_resids,pos_probs,num_cat):
 	dom_source = 'none'
 	spec_dom = 'none'
-	for jstat,chi_red in zip(jstats,chi_resids):
-		##DO IT THIS WAY IN CASE ONLY TWO CATS, IN THAT CASE BOTH HAVE NO RESIDS AND SO THE INDEXING CAN'T
-		##TELL THE DIFFERENCE. SHOULD WE BE DOING SPEC TESTS ON ONLY TWO CAT THINGS?!?!?!?!?!?!!?!?1
-		jstat_test = [jstat/other_jstat for other_jstat in jstats if jstats.index(other_jstat)!=jstats.index(jstat)]
-		chi_test = [chi_red/other_chi for other_chi in chi_resids if chi_resids.index(other_chi)!=chi_resids.index(chi_red)]
-		if len(jstat_test)==0 and len(chi_test)==0:
-			pass
-		else:
-			if len(jstat_test)!=0:
-				if max(jstat_test)<=0.33:
-					spec_dom = jstats.index(jstat)
-			if len(chi_test)!=0:
-				if max(chi_test)<=0.33:
-					spec_dom = chi_resids.index(chi_red)
+	
+	##Sometimes get numerical errors so that residuals of two catalogue matches are > 0, so skip if
+	##only two catalogues presents
+	if num_cat==2:
+		pass
+	else:
+		for jstat,chi_red in zip(jstats,chi_resids):
+			##DO IT THIS WAY IN CASE ONLY TWO CATS, IN THAT CASE BOTH HAVE NO RESIDS AND SO THE INDEXING CAN'T
+			##TELL THE DIFFERENCE. SHOULD WE BE DOING SPEC TESTS ON ONLY TWO CAT THINGS?!?!?!?!?!?!!?!?1
+			jstat_test = [jstat/other_jstat for other_jstat in jstats if jstats.index(other_jstat)!=jstats.index(jstat)]
+			chi_test = [chi_red/other_chi for other_chi in chi_resids if chi_resids.index(other_chi)!=chi_resids.index(chi_red)]
+			if len(jstat_test)==0 and len(chi_test)==0:
+				pass
+			else:
+				if len(jstat_test)!=0:
+					if max(jstat_test)<=0.33:
+						spec_dom = jstats.index(jstat)
+				if len(chi_test)!=0:
+					if max(chi_test)<=0.33:
+						spec_dom = chi_resids.index(chi_red)
 	
 	##Work out if just one prob > high threshold, and all others < low threshold
 	higher_probs = [prob for prob in pos_probs if prob>low_prob]
@@ -674,6 +679,10 @@ def spec_pos_agree(jstats,chi_resids,pos_probs):
 	
 	##See if prob dom and spec dom are the same source, if so make most likely
 	if spec_dom == prob_dom: dom_source = spec_dom
+	
+	if num_cat==2:
+		if spec_dom != 'none':
+			print jstats,chi_resids
 
 	return dom_source
 
