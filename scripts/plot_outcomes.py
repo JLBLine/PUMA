@@ -62,6 +62,9 @@ parser.add_option('-j', '--p_combine', action='store_true',default=False,
 parser.add_option('-k', '--p_split', action='store_true',default=False,
 	help='Plot matches accepted by splitting')
 
+parser.add_option('-l', '--p_cats',default=0,
+	help='Only plot matches that contain the stated catalogues. Add separated by commas eg --p_cats=cat1,cat2,cat3')
+
 parser.add_option('-q', '--query', default='0',
 	help='Plot the results of certain named sources')
 
@@ -110,6 +113,11 @@ num_freqs = []
 for freq in cat_fs: num_freqs.append(len(freq.split('~')))
 split = options.split
 queries = options.query.split(',')
+
+if options.p_cats == 0:
+	p_cats = matched_cats
+else:
+	p_cats = options.p_cats.split(',')
 ##-----------------------------------------------------------------------------
 ##-----------------------------------------------------------------------------
 
@@ -135,30 +143,17 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 	##Work out how many cataloges are present
 	present_cats = [cat for cat in src_all.cats if cat!='-100000.0']
 	num_matches = len(set(present_cats))
-	##If not querying for a certain object
-	if queries[0] == '0':
-		##If plotting all outcomes (accept, reject, eyeball)
-		if plot_all:
-			if plot_num_catalogues == 0:
-				if plot_num_combs == 0:
-					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-				else:
-					if num_combs == plot_num_combs: 
-						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-					else:
-						pass
-			else:
-				if num_matches == plot_num_catalogues:
-					if plot_num_combs == 0:
-						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-					else:
-						if num_combs == plot_num_combs: 
-							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-						else:
-							pass
-		else:
-			##Truth test here is either plot_accept, plot_eyeball, plot_reject
-			if truth_test:
+	
+	##If only select catalogues to be plotted, check for catalogues being present
+	cats_present = 'no'
+	for cat in present_cats:
+		if cat in p_cats: cats_present = 'yes'
+	
+	if cats_present == 'yes':
+		##If not querying for a certain object
+		if queries[0] == '0':
+			##If plotting all outcomes (accept, reject, eyeball)
+			if plot_all:
 				if plot_num_catalogues == 0:
 					if plot_num_combs == 0:
 						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
@@ -177,13 +172,35 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 							else:
 								pass
 			else:
-				pass
+				##Truth test here is either plot_accept, plot_eyeball, plot_reject
+				if truth_test:
+					if plot_num_catalogues == 0:
+						if plot_num_combs == 0:
+							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+						else:
+							if num_combs == plot_num_combs: 
+								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							else:
+								pass
+					else:
+						if num_matches == plot_num_catalogues:
+							if plot_num_combs == 0:
+								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							else:
+								if num_combs == plot_num_combs: 
+									pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+								else:
+									pass
+				else:
+					pass
+		else:
+			for query in queries:
+				if query in src_all.names: 
+					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+				else: 
+					pass
 	else:
-		for query in queries:
-			if query in src_all.names: 
-				pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
-			else: 
-				pass
+		pass
 			
 def plot_accept_type(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,accept_type):
 	##If certain types of matches are requested, only plot the correct type of match

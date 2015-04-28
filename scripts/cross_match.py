@@ -153,8 +153,8 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 		num_of_freqs = length / 3
 		for i in xrange(num_of_freqs):
 			freqs.append(details[13+(3*i)])
-			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],'Jy','flux',entries))
-			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],'Jy','flux',entries))
+			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],units[9+(2*i)],'flux',entries))
+			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],units[10+(2*i)],'flux',entries))
 			
 	##Create a new table, and populate with the data in correct units
 	t=atpy.Table(masked=True)
