@@ -71,6 +71,10 @@ def arcdist(RA1,RA2,Dec1,Dec2):
 	in2 = (90.0 - Dec2)*dr
 	RA_d = (RA1 - RA2)*dr
 	cosalpha = np.cos(in1)*np.cos(in2) + np.sin(in1)*np.sin(in2)*np.cos(RA_d)
+	##Sometimes get floating point errors if two sources at exactly
+	##the same position, so account for this:
+	if cosalpha>1.0: cosalpha = 1.0
+	elif cosalpha<-1.0: cosalpha = -1.0
 	alpha = np.arccos(cosalpha)
 	return alpha/dr
 
@@ -99,6 +103,7 @@ class source_group:
 		self.SI_err = None
 		self.intercept_err = None
 		self.low_resids = None
+		self.chi_resid = None
 		
 ##Used to store source and group information
 class source_group_sized:
@@ -544,6 +549,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		src_g.intercept = comb_fit.params[1]
 		src_g.SI_err = comb_bse[0]
 		src_g.intercept_err = comb_bse[1]
+		src_g.chi_resid = comb_chi_red
 	
 		##If good fit, report that in the final stats object
 		if comb_chi_red<=2:
@@ -570,7 +576,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				else:
 					dom_crit = 'Accepted -\nsplit'
 					split_sources = []
-					for set_ind in xrange(len(set_cats)):
+					for set_ind,resid in zip(xrange(len(set_cats)),set_red):
 						new_g = copy.deepcopy(src_g)
 						##We need to put the sources in the same order as the src_g, so it gets
 						##put in to the final table in the right order. The position info for
@@ -595,6 +601,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 							new_g.SI_err = set_bse[set_ind][0]
 							new_g.intercept = set_fits[set_ind].params[1]
 							new_g.intercept_err = set_bse[set_ind][1]
+							new_g.chi_resid = resid
 							
 						split_sources.append(new_g)
 			
@@ -695,6 +702,8 @@ class group_stats:
 		self.num_close = None
 		self.num_high_prob = None
 		self.num_low_prob = None
+		self.outcome = None
+		self.num_cats = None
 		
 	
 def matches_retained(src_all,matches):

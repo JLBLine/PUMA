@@ -117,7 +117,10 @@ def make_accept(comp,g_stats,accept_type,accepted_inds):
 	if len(accepted_inds)==0: accepted_inds = [0]
 	for i in accepted_inds: a_ind+=str(i)+','
 	a_ind = a_ind[:-1]
-	comp = comp[1:]
+	if comp[0] == 'S':
+		pass
+	else:
+		comp = comp[1:]
 	##Stats used by plot_extended.py for plotting
 	stat_string = "STATS %d %d %s accept %s\nEND_GROUP\n" %(g_stats.num_matches,g_stats.retained_matches,a_ind,accept_type)
 	to_accept_comps.append(comp+stat_string)
@@ -129,7 +132,10 @@ def make_rejection(comp,g_stats,accept_type,accepted_inds):
 	a_ind = ""
 	for i in accepted_inds: a_ind+=str(i)+','
 	a_ind = a_ind[:-1]
-	comp = comp[1:]
+	if comp[0] == 'S':
+		pass
+	else:
+		comp = comp[1:]
 	stat_string = "STATS %d %d %s reject %s\nEND_GROUP\n" %(g_stats.num_matches,g_stats.retained_matches,a_ind,accept_type)
 	to_eyeball_comps.append(comp+stat_string)
 	to_eyeball_accepts.append(stat_string)
@@ -512,7 +518,7 @@ retained_matches = [source.retained_matches for source in sources_stats]
 t.add_column('Retained_matches',np.array(retained_matches),description='Number of retained (by position) combinations in the group match')
 
 type_matches = [source.accept_type for source in sources_stats]
-t.add_column('Type_matches',np.array(type_matches),description='At which stage the match was accepted')
+t.add_column('Match_stage',np.array(type_matches),description='The PUMA stage at which a decision was made')
 
 low_resids = [source.low_resids for source in sources]
 t.add_column('Low_resids',np.array(low_resids),description='Whether the fitted data had residuals above the threshold of chi_reduced<=2. 1 is above threshold, 0 otherwise')

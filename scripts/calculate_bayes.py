@@ -186,9 +186,16 @@ for cat,skip in zip(matched_cats,skip_rows):
 				##result, otherwise goes as a space and later indexing gets ruined
 				if str(row[10])=='':
 					src.flags.append('-100000.0')
+				elif str(row[10])=='--':
+					src.flags.append('-100000.0')
 				else:
 					src.flags.append(str(row[10]))
-				src.IDs.append(str(row[11]))
+				if str(row[11])=='':
+					src.IDs.append('-100000.0')
+				elif str(row[11])=='--':
+					src.IDs.append('-100000.0')
+				else:
+					src.IDs.append(str(row[11]))
 				src.freqs.append(primary_freq)
 				source_matches.append(src)
 	
@@ -206,9 +213,9 @@ for cat,skip in zip(matched_cats,skip_rows):
 			src.cats.append(cat)
 			src.names.append(str(row[12]))
 			src.ras.append(str(row[13]))
-			src.rerrs.append(str(row[14]))
+			#src.rerrs.append(str(row[14]))
 			src.decs.append(str(row[15]))
-			src.derrs.append(str(row[16]))
+			#src.derrs.append(str(row[16]))
 			##Test the errors for zero or neg values,
 			##and insert a proxy error if so
 			if float(row[14])<=0.0:
@@ -227,9 +234,16 @@ for cat,skip in zip(matched_cats,skip_rows):
 			##result, otherwise goes as a space and later indexing gets ruined
 			if str(row[22])=='':
 				src.flags.append('-100000.0')
+			elif str(row[22])=='--':
+				src.flags.append('-100000.0')
 			else:
 				src.flags.append(str(row[22]))
-			src.IDs.append(str(row[23]))
+			if str(row[23])=='':
+				src.IDs.append('-100000.0')
+			elif str(row[23])=='--':
+				src.IDs.append('-100000.0')
+			else:
+				src.IDs.append(str(row[23]))
 			ind_freq = matched_cats.index(cat)
 			cat_freq = matched_freqs[ind_freq]
 			cat_freqs = cat_freq.split('~')

@@ -427,7 +427,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 				spec_labels.append(split_p)
 				SIs.append([fit.params[0],'split %d' %(ind+1)])
 			
-			bright_colours = ['#FF6600','#33FF33','#FF47A3']
+			bright_colours = ['#FF6600','#33FF33','#FF47A3','#00ebb3']
 			
 			for freq in xrange(len(comb_freqs)):
 				plot_errors('*',bright_colours[freq],comb_freqs[freq],comb_fluxs[freq],comb_ferrs[freq],'combo',9,ax_spectral)

@@ -210,10 +210,10 @@ if options.make_table==True:
 	details2 = options.details2.split(',')
 	units1 = options.units1.split(',')
 	units2 = options.units2.split(',')
-	ra_lims1 = map(int,options.ra_lims1.split(','))
-	ra_lims2 = map(int,options.ra_lims2.split(','))
-	dec_lims1 = map(int,options.dec_lims1.split(','))
-	dec_lims2 = map(int,options.dec_lims2.split(','))
+	ra_lims1 = map(float,options.ra_lims1.split(','))
+	ra_lims2 = map(float,options.ra_lims2.split(','))
+	dec_lims1 = map(float,options.dec_lims1.split(','))
+	dec_lims2 = map(float,options.dec_lims2.split(','))
 	table1 = options.table1
 	table2 = options.table2
 	data1 = atpy.Table(table1,verbose=False)
