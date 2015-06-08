@@ -322,60 +322,8 @@ for comp in bayes_comp:
 				else:
 					make_eyeballed(comp,g_stats,'combine',accepted_inds)
 
-##Print information about matches where there was only one source from each catalogue
-def print_singles():
-	print '\nSINGLE MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-	print "............Overall............"
-	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
-	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==1])
-	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==1])
-	print "Singles: ", num_accept+num_reject+num_eyeball, " Accepted:", num_accept,' Rejected entirely:', num_reject
-	print "...........Overall Positional............."
-	print "Singles accepted purely by position: " , len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type=='position'])
-	print "Singles rejected purely by position: " , len([1 for g_stats in rejected_stats if g_stats.num_matches==1 and g_stats.accept_type=='position'])
-	print "...........Overall Spectral............."
-	print "Singles accepted at the spectral stage: " , len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type=='spectral'])
-	print "Singles rejected at the spectral stage: " , len([1 for g_stats in rejected_stats if g_stats.num_matches==1 and g_stats.accept_type=='spectral'])
-	print "\n"
 
-##Function to calculate the break down of statistics for a particular number of matches
-def print_out(num_matches,description,BIG):
-	print '%s MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++' %BIG
-	print "............Overall............"
-	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
-	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches])
-	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches])
-	print "%s: " %description ,num_accept+num_reject+num_eyeball , " Accepted:", num_accept,' Rejected entirely:', num_reject
-	print "\tRetained to investigate: ", num_eyeball
-	print "...........Overall Positional............."
-	print "%s accepted purely by position: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position'])
-	print "%s rejected purely by position: " %description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position'])
-	print "...........Overall Spectral............."
-	print "%s accepted at the spectral stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])
-	print "%s rejected at the spectral stage: " %description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])
-	print "...........Overall Combine............."
-	print "%s accepted at the combine stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
-	print "%s sent to eyeball at the combine stage: " %description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])
-	print "...........Overall Split............."
-	print "%s accepted at the splitting stage: " %description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA'])
-	print "%s sent to eyeball at the splitting stage: " %description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split'])
-	print "-----------------------------------------------------------------------"
-	for retained in reversed(range(1,num_matches+1)):
-		print "...........%d Positionally Retained..............." %retained
-		accept_num = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
-		reject_num = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
-		combined_num = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
-		print "\ttotal: ", accept_num + reject_num + combined_num
-		print "\taccepted purely by position: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position' and g_stats.retained_matches==retained])
-		print "\trejected purely by position: ", len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position' and g_stats.retained_matches==retained])
-		print "\taccepted at the spectral stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
-		print "\trejected at the spectral stage: ", len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])
-		print "\taccepted at the combine stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
-		print "\tsent to eyeball at the combine stage: ", len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])
-		print "\taccepted at the splitting stage: ", len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA' and g_stats.retained_matches==retained])
-		print "\tsent to eyeball at the splitting stage: ", len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split' and g_stats.retained_matches==retained])
-	print '\n'
-
+##Print the general statistics automatically
 print '-------------------------------------------------------------------------'
 print '+++++++++++TOTAL NUMBER OF SOURCES: %d +++++++++++++++++++++++++++++++' %len(bayes_comp)
 print '-------------------------------------------------------------------------'
@@ -388,19 +336,89 @@ print "All sources rejected: " , len(rejected_stats)
 print "\trejected by position: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='position'])
 print "\trejected by spectral: ", len([1 for g_stats in rejected_stats if g_stats.accept_type=='spectral'])
 print "All sources retained to eyeball: " , len(eyeballed_stats)
-#print "\tretained by position: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='position'])
-#print "\tretained by spectral: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='spectral'])
 print "\tretained by combine: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='combine'])
 print "\tretained by splitting: ", len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='split'])
 
+##Print information about matches where there was only one source from each catalogue
+def write_singles(stats_outfile):
+	stats_outfile.write('-------------------------------------------------------------------------\n')
+	stats_outfile.write('+++++++++++TOTAL NUMBER OF SOURCES: %d +++++++++++++++++++++++++++++++\n' %len(bayes_comp))
+	stats_outfile.write('-------------------------------------------------------------------------\n')
+	stats_outfile.write("All sources accepted: %d\n" %len([1 for g_stats in sources_stats if g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF']))
+	stats_outfile.write("\taccepted by position: %d\n" %len([1 for g_stats in sources_stats if g_stats.accept_type=='position']))
+	stats_outfile.write("\taccepted by spectral: %d\n" %len([1 for g_stats in sources_stats if g_stats.accept_type=='spectral']))
+	stats_outfile.write("\taccepted by combine: %d\n" %len([1 for g_stats in sources_stats if g_stats.accept_type=='combine']))
+	stats_outfile.write("\taccepted by splitting: %d\n" %len([1 for g_stats in sources_stats if g_stats.accept_type=='splitA']))
+	stats_outfile.write("All sources rejected: %d\n"  %len(rejected_stats))
+	stats_outfile.write("\trejected by position: %d\n" %len([1 for g_stats in rejected_stats if g_stats.accept_type=='position']))
+	stats_outfile.write("\trejected by spectral: %d\n" %len([1 for g_stats in rejected_stats if g_stats.accept_type=='spectral']))
+	stats_outfile.write("All sources retained to eyeball: %d\n" %len(eyeballed_stats))
+	stats_outfile.write("\tretained by combine: %d\n" %len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='combine']))
+	stats_outfile.write("\tretained by splitting: %d\n" %len([1 for g_stats in eyeballed_stats if g_stats.accept_type=='split']))
+	
+	stats_outfile.write('\n-------------------------------------------------------------------------\n')
+	stats_outfile.write('SINGLE MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
+	stats_outfile.write('-------------------------------------------------------------------------\n')
+	stats_outfile.write("............Overall............\n")
+	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
+	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==1])
+	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==1])
+	stats_outfile.write("Singles: %d Accepted: %d Rejected entirely: %d\n" %(num_accept+num_reject+num_eyeball,num_accept, num_reject))
+	stats_outfile.write("...........Overall Positional.............\n")
+	stats_outfile.write("\tSingles accepted purely by position: %d\n" %len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type=='position']))
+	stats_outfile.write("\tSingles rejected purely by position: %d\n" %len([1 for g_stats in rejected_stats if g_stats.num_matches==1 and g_stats.accept_type=='position']))
+	stats_outfile.write("...........Overall Spectral.............\n")
+	stats_outfile.write("\tSingles accepted at the spectral stage: %d\n" %len([1 for g_stats in sources_stats if g_stats.num_matches==1 and g_stats.accept_type=='spectral']))
+	stats_outfile.write("\tSingles rejected at the spectral stage: %d\n" %len([1 for g_stats in rejected_stats if g_stats.num_matches==1 and g_stats.accept_type=='spectral']))
+
+##Function to calculate the break down of statistics for a particular number of matches
+def write_out(num_matches,description,BIG,stats_outfile):
+	stats_outfile.write('\n-------------------------------------------------------------------------\n')
+	stats_outfile.write('%s MATCHES++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n' %BIG)
+	stats_outfile.write('-------------------------------------------------------------------------\n')
+	stats_outfile.write("............Overall............\n")
+	num_accept = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
+	num_reject = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches])
+	num_eyeball = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches])
+	stats_outfile.write("%s: %d Accepted: %d Rejected entirely: %d" %(description ,num_accept+num_reject+num_eyeball,num_accept, num_reject))
+	stats_outfile.write("\tRetained to investigate: %d\n" %num_eyeball)
+	stats_outfile.write("...........Overall Positional.............\n")
+	stats_outfile.write("\t%s accepted purely by position: %d\n" %(description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position'])))
+	stats_outfile.write("\t%s rejected purely by position: %d\n" %(description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position'])))
+	stats_outfile.write("...........Overall Spectral.............\n")
+	stats_outfile.write("\t%s accepted at the spectral stage: %d\n" %(description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])))
+	stats_outfile.write("\t%s rejected at the spectral stage: %d\n" %(description, len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral'])))
+	stats_outfile.write("...........Overall Combine.............\n")
+	stats_outfile.write("\t%s accepted at the combine stage: %d\n" %(description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])))
+	stats_outfile.write("\t%s sent to eyeball at the combine stage: %d\n" %(description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine'])))
+	stats_outfile.write("...........Overall Split.............\n")
+	stats_outfile.write("\t%s accepted at the splitting stage: %d\n" %(description, len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA'])))
+	stats_outfile.write("\t%s sent to eyeball at the splitting stage: %d\n" %(description, len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split'])))
+	stats_outfile.write("-----------------------------------------------------------------------\n")
+	for retained in reversed(range(1,num_matches+1)):
+		stats_outfile.write("...........%d Positionally Retained...............\n" %retained)
+		accept_num = len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained and g_stats.accept_type!='splitB' and g_stats.accept_type!='splitC' and g_stats.accept_type!='splitD' and g_stats.accept_type!='splitE'and g_stats.accept_type!='splitF'])
+		reject_num = len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
+		combined_num = len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.retained_matches==retained])
+		stats_outfile.write("\tTotal: %d\n" %(accept_num + reject_num + combined_num))
+		stats_outfile.write("\tAccepted purely by position: %d\n" %(len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tRejected purely by position: %d\n" %(len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='position' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tAccepted at the spectral stage: %d\n" %(len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tRejected at the spectral stage: %d\n" %(len([1 for g_stats in rejected_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='spectral' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tAccepted at the combine stage: %d\n" %(len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tSent to eyeball at the combine stage: %d\n" %(len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='combine' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tAccepted at the splitting stage: %d\n" %(len([1 for g_stats in sources_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='splitA' and g_stats.retained_matches==retained])))
+		stats_outfile.write("\tSent to eyeball at the splitting stage: %d\n" %(len([1 for g_stats in eyeballed_stats if g_stats.num_matches==num_matches and g_stats.accept_type=='split' and g_stats.retained_matches==retained])))
+
 if options.verbose==True:
-	print_singles()
-	print_out(2,'Doubles','DOUBLE')
-	print_out(3,'Triples','TRIPLE')
-	print_out(4,'Quadruples','QUADRUPLES')
+	stats_outfile = open("stats_%s.txt" %options.output_name,'w+')
+	write_singles(stats_outfile)
+	write_out(2,'Doubles','DOUBLE',stats_outfile)
+	write_out(3,'Triples','TRIPLE',stats_outfile)
+	write_out(4,'Quadruples','QUADRUPLES',stats_outfile)
 	##ADD THESE AND ANY MORE TO YOU HEARTS DESIRE
-	#print_out(5,'Quintuples','QUINTUPLES')
-	#print_out(6,'Sextuples','SEXTUPLES')
+	#write_out(5,'Quintuples','QUINTUPLES')
+	#write_out(6,'Sextuples','SEXTUPLES')
 
 ###WRITE THE TABLE+++++++++++++++++++++++++++++++++++++++++++++_____________________________------------------------++++++++++++++++++++++++++++++
 ###+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
