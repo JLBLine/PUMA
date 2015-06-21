@@ -2,6 +2,10 @@
 import atpy
 import numpy as np
 import optparse
+try:
+	import pyfits as fits
+except ImportError:
+	from astropy.io import fits
 
 ##Get all of the input variables
 parser = optparse.OptionParser()
@@ -39,10 +43,14 @@ dr = np.pi/180.0
 
 ##Opens each indivudual vot match table
 def open_table(name):
-	data = atpy.Table(name,verbose=False)
+	table = fits.open(name)
+	data = table[1].data
 	shape = data.shape
 	rows = shape[0]
-	return data,rows
+	nu_1 = table[1].header['nu_1']
+	nu_2 = table[1].header['nu_2']
+	
+	return data,rows,nu_1,nu_2
 
 ##A class to store the information for a group of matched sources
 class source_info:
@@ -93,8 +101,8 @@ for cat in matched_cats:
 	separations = []
 	skip_row = []
 	##Get data
-	match_name = 'matched_%s_%s.vot' %(primary_cat,cat)
-	data,rows = open_table(match_name)
+	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
+	data,rows,nu_1,nu_2 = open_table(match_name)
 	for row in data:
 		match_names.append(str(row[12]))
 		separations.append(float(row[-1]))
@@ -126,12 +134,12 @@ scaled_source_nums = []
 ##Read in the data. First, check each match for a new primary catalogue entry. If new, create a new
 ##source_info class and append primary cat information
 for cat,skip in zip(matched_cats,skip_rows):
-	match_name = 'matched_%s_%s.vot' %(primary_cat,cat)
-	data,rows = open_table(match_name)
-	##Find the source densities from the tables that were calcualted by cross_match.py,
-	##and add to scaled_source_nums list
-	prim_dens = float(data.keywords["%s_nu" %primary_cat])
-	match_dens = float(data.keywords["%s_nu" %cat])
+	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
+	
+	###Find the source densities from the tables that were calcualted by cross_match.py,
+	###and add to scaled_source_nums list
+	data,rows,prim_dens,match_dens = open_table(match_name)
+	
 	if len(scaled_source_nums)==0:
 		scaled_source_nums.append(prim_dens)
 		scaled_source_nums.append(match_dens)
@@ -153,7 +161,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 		if s_row in skip:
 			pass
 		else:
-			row = data.row(s_row)
+			row = data[s_row]
 			primary_name = row[0]
 			if primary_name not in primary_names:
 				primary_names.append(primary_name)
@@ -206,16 +214,14 @@ for cat,skip in zip(matched_cats,skip_rows):
 		if s_row in skip:
 			pass
 		else:
-			row = data.row(s_row)
+			row = data[s_row]
 			primary_name = row[0]
 			ind = primary_names.index(primary_name)
 			src = source_matches[ind]
 			src.cats.append(cat)
 			src.names.append(str(row[12]))
 			src.ras.append(str(row[13]))
-			#src.rerrs.append(str(row[14]))
 			src.decs.append(str(row[15]))
-			#src.derrs.append(str(row[16]))
 			##Test the errors for zero or neg values,
 			##and insert a proxy error if so
 			if float(row[14])<=0.0:
@@ -253,7 +259,6 @@ for cat,skip in zip(matched_cats,skip_rows):
 				freqss = []
 				fluxss = []
 				ferrss = []
-				
 				freqss.append(str(cat_freqs[0]))
 				fluxss.append(str(row[17]))
 				if -100000.0<float(row[18])<=0.0:

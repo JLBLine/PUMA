@@ -1,5 +1,6 @@
 import atpy
 from numpy import *
+import subprocess
 
 def deg_to_degmins(x):	    #converts angle degrees form in to dd:mm:ss.ss
 	x=float(x)
@@ -38,6 +39,7 @@ decs = tdata['_DEJ2000']
 
 names = ['J%s%s' %(deg_to_hour(ras[i]),deg_to_degmins(decs[i])) for i in xrange(len(ras))]
 
-tdata.add_column('name',names,description='Name based on J2000 position')
+tdata.add_column('name',names,description='Name based on J2000 position',dtype=str)
 
 tdata.write("sumss_names.vot",votype='ascii',overwrite=True)
+subprocess.call('stilts tcopy ifmt=votable ofmt=fits in=sumss_names.vot out=sumss_names.fits',shell=True)

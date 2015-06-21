@@ -104,6 +104,7 @@ class source_group:
 		self.intercept_err = None
 		self.low_resids = None
 		self.chi_resid = None
+		self.jstat_resid = None
 		
 ##Used to store source and group information
 class source_group_sized:
@@ -137,16 +138,20 @@ def fit_line(x_data,y_data,errors):
 	   returns a data fit statsmodels object and the residuals'''
 	X = np.column_stack((x_data,np.ones(len(x_data))))
 	data_fit = sm.WLS(y_data,X,weights=1/errors**2).fit()
-	bse = data_fit.bse
+	bse = data_fit.bse	
 	
+	##Cannot get residuals on data with 2 or less points
+	if len(y_data)<=2:
+		chi_red = 0.0
+		jstat = 0.0
 	##(1/n)*(|O - E|/O)
-	resids2 = abs(np.exp(data_fit.fittedvalues) - np.exp(y_data))
-	jstat = np.sum(resids2/np.exp(y_data))/len(y_data)
-	
 	##ssr is the sum of the residuals over the errors squared ie chi_squared
 	##divide by N - 2 as fitting two paramaters to get chi_reduced
-	chi_red = data_fit.ssr/(len(y_data)-2)
-	if str(chi_red)=='inf': chi_red = 0
+	else:
+		resids2 = abs(np.exp(data_fit.fittedvalues) - np.exp(y_data))
+		jstat = np.sum(resids2/np.exp(y_data))/len(y_data)
+		chi_red = data_fit.ssr/(len(y_data)-2)
+	if str(chi_red)=='inf': chi_red = 0.0
 	
 	return data_fit,jstat,bse,chi_red
 
@@ -550,6 +555,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		src_g.SI_err = comb_bse[0]
 		src_g.intercept_err = comb_bse[1]
 		src_g.chi_resid = comb_chi_red
+		src_g.epsilon_red = comb_jstat
 	
 		##If good fit, report that in the final stats object
 		if comb_chi_red<=2:
@@ -576,7 +582,8 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				else:
 					dom_crit = 'Accepted -\nsplit'
 					split_sources = []
-					for set_ind,resid in zip(xrange(len(set_cats)),set_red):
+					for set_ind,resids in zip(xrange(len(set_cats)),zip(set_red,set_jstat)):
+						chi_resid,eps_red = resids
 						new_g = copy.deepcopy(src_g)
 						##We need to put the sources in the same order as the src_g, so it gets
 						##put in to the final table in the right order. The position info for
@@ -601,8 +608,8 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 							new_g.SI_err = set_bse[set_ind][0]
 							new_g.intercept = set_fits[set_ind].params[1]
 							new_g.intercept_err = set_bse[set_ind][1]
-							new_g.chi_resid = resid
-							
+							new_g.chi_resid = chi_resid
+							new_g.epsilon_red = eps_red
 						split_sources.append(new_g)
 			
 		##If plotting need a bunch specific info

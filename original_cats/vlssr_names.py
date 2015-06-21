@@ -1,5 +1,6 @@
 import atpy
 from numpy import *
+import subprocess
 
 def deg_to_degmins(x):	    #converts angle degrees form in to dd:mm:ss.ss
 	x=float(x)
@@ -129,20 +130,21 @@ for line in vlssr_data:
 			ferrs.append(float(info[3]))
 
 tdata = atpy.Table(masked=True)
-			
+
 names = ['J%s%s' %(deg_to_hour(ras[i]),deg_to_degmins(decs[i])) for i in xrange(len(ras))]
 			
-tdata.add_column('Name', array(names),description='Name based on J2000 position')
-tdata.add_column('RA_J2000',array(ras),description='J200 Right ascension of source',unit='deg')
-tdata.add_column('RA_err',array(rerrs),description='Error on Right ascension of source',unit='deg')
-tdata.add_column('DEC_J2000',array(decs),description='J2000 Declination of source',unit='deg')
-tdata.add_column('DEC_err',array(derrs),description='Error on Declination of source',unit='deg')
-tdata.add_column('Flux',array(fluxs),description='Flux density',unit='Jy')
-tdata.add_column('Flux_err',array(ferrs),description='Error on flux density',unit='Jy')
-tdata.add_column('major',array(majors),description='Major axes of  gaussian fit',unit='arcsec')
-tdata.add_column('minor',array(minors),description='Minor axes of  gaussian fit',unit='arcsec')
-tdata.add_column('PA',array(PAs),description='Position angle of gaussian fit',unit='deg')
-tdata.add_column('Flags',array(flags),description='If extended, vlssr includes a flag',unit='deg')
-tdata.add_column('Field',array(fields),description='The image field ID',unit='deg')
+tdata.add_column('Name', array(names),description='Name based on J2000 position',dtype=str)
+tdata.add_column('RA_J2000',array(ras),description='J2000 Right ascension of source',unit='deg',dtype=float)
+tdata.add_column('RA_err',array(rerrs),description='Error on Right ascension of source',unit='deg',dtype=float)
+tdata.add_column('DEC_J2000',array(decs),description='J2000 Declination of source',unit='deg',dtype=float)
+tdata.add_column('DEC_err',array(derrs),description='Error on Declination of source',unit='deg',dtype=float)
+tdata.add_column('Flux',array(fluxs),description='Flux density',unit='Jy',dtype=float)
+tdata.add_column('Flux_err',array(ferrs),description='Error on flux density',unit='Jy',dtype=float)
+tdata.add_column('major',array(majors),description='Major axes of  gaussian fit',unit='arcsec',dtype=float)
+tdata.add_column('minor',array(minors),description='Minor axes of  gaussian fit',unit='arcsec',dtype=float)
+tdata.add_column('PA',array(PAs),description='Position angle of gaussian fit',unit='deg',dtype=float)
+tdata.add_column('Flags',array(flags),description='If extended, vlssr includes a flag',unit='deg',dtype=str)
+tdata.add_column('Field',array(fields),description='The image field ID',unit='deg',dtype=str)
 	
 tdata.write("vlssr_names.vot",votype='ascii',overwrite=True)
+subprocess.call('stilts tcopy ifmt=votable ofmt=fits in=sumss_names.vot out=sumss_names.fits',shell=True)

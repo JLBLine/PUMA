@@ -23,10 +23,10 @@ global matched_cats
 
 ##Set up a load of markers, colours and alpha values
 markers = ['o','*','s','^','D','8','H','>','<','8','v','d']
-marker_sizes = [8,11,8,8,7,10,11,11,11,11,11,11,11]
-marker_colours = ['m', "b", "#e5e500", "r", "g", "#c0531f",'#660066','#000099','y','#990000','#003300','k']
-ell_colours1 = ["#C370C8", "#698ACD", "#AA6600", "#D84C77", "#5FC34F", "#D46733",'m','b','y','r','g','k']
-ell_colours2 = ['m', "b", "#8B5A00", "r", "g", "#c0531f",'#660066','#000099','y','#990000','#003300','k']
+marker_sizes = np.array([8,11,8,8,7,10,11,11,11,11,11,11,11]) + 3
+marker_colours = ['m', "b", "#e5e500", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
+ell_colours1 = ["#C370C8", "#698ACD", "#AA6600", "#D84C77", "#5FC34F", 'k', "#D46733",'m','b','y','r','g']
+ell_colours2 = ['m', "b", "#8B5A00", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
 alphas = [0.4,0.4,0.4,0.4,0.4,0.4,0.3,0.45,0.5,0.4,0.5,0.4]
 
 
@@ -44,20 +44,45 @@ def plot_pos(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
 		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None',transform=proj)
 	return p
 	
-def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
+#def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
+	#'''Plots an ellipse - either plots on the ax_main which uses a wcs projection
+	#or on the smaller subplots which don't need transforming'''
+	###Position Angle measures angle from direction to NCP towards increasing RA (east)
+	###Matplotlib plots the angle from the increasing y-axis toward DECREASING x-axis
+	###so have to put in the PA as negative
+	#if proj==1.0:
+		#ell = Ellipse([ra,dec],width=width,height=height,angle=-PA)
+	#else:
+		#ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj)  ##minus???
+	#ax.add_artist(ell)
+	#ell.set_alpha(alpha)
+	#ell.set_facecolor(colour)
+	#ell.set_edgecolor(colour2)
+	
+def plt_ell_empty(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 	'''Plots an ellipse - either plots on the ax_main which uses a wcs projection
 	or on the smaller subplots which don't need transforming'''
 	##Position Angle measures angle from direction to NCP towards increasing RA (east)
 	##Matplotlib plots the angle from the increasing y-axis toward DECREASING x-axis
 	##so have to put in the PA as negative
 	if proj==1.0:
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA)
+		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,linewidth=1.5)  ##minus???
+		ell.set_facecolor('none')
+		ell.set_edgecolor(colour2)
+		ax.add_artist(ell)
+		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,linewidth=1.5)
+		ell.set_facecolor(colour)
+		ell.set_alpha(0.3)
+		ax.add_artist(ell)
 	else:
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj)  ##minus???
-	ax.add_artist(ell)
-	ell.set_alpha(alpha)
-	ell.set_facecolor(colour)
-	ell.set_edgecolor(colour2)
+		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj,linewidth=1.5)  ##minus???
+		ell.set_facecolor('none')
+		ell.set_edgecolor(colour2)
+		ax.add_artist(ell)
+		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj,linewidth=1.5)
+		ell.set_facecolor(colour)
+		ell.set_alpha(0.3)
+		ax.add_artist(ell)
 	
 ##POSSIBLE EXTENSION - MAKE GENERIC SO IT CYCLES THROUGH SOME COLOURS, NOT SPECIFIED COLOURS
 ##FOR A PARTICULAR CATALOGUE
@@ -68,10 +93,11 @@ def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 	if cat=='mrc':
 		pass
 	else:
+		##If no minor/major information, don't plot
 		if float(minor)!=-100000.0:
 			if float(major)!=-100000.0:
-				plt_ell(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
-				
+				plt_ell_empty(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
+
 ##--------------------------------------------------------------------------------------------------------------------
 def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom_crit,comb_crit):
 	'''Takes a string of information of a particular combination and uses it
@@ -116,7 +142,6 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 			##Plot each source on the individual combo plot
 			plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,1.0)
 	##Sort the frequencies, fluxes and log them
-	
 	log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 	sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
 	log_freqs = np.log(sorted(freqs))
@@ -129,7 +154,6 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 	ax.text(0.5,0.925, 'P$_{%d}$=%.2f' %(ind_ax+1,float(prob)), transform=ax.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	ax.text(0.5,0.06, '$\epsilon_{%d}$=%.2f $\chi_{%d}$=%.1f' %(ind_ax+1,jstat,ind_ax+1,chi_red),
 		transform=ax.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
-	
 	ax.set_xlim(ra_bottom,ra_top)
 	ax.set_ylim(dec_bottom,dec_top)
 	
@@ -303,7 +327,7 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	
 
 def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
-	
+	'''The main plotting function that takes the relevant data and plots the outcome'''
 	###Split the information up as needed
 	chunks = comp.split('START_COMP')
 	all_info = chunks[0].split('\n')
@@ -317,11 +341,18 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	matches = chunks[1].split('\n')
 	del matches[0],matches[-2:]
 
-	##See how many matches there are, and set up the number of plots needed
+	##See how many matches there are, and set up the number of plots needed. If there are
+	##more than 16 matches, only plot the top 15 and print how many more matches there 
+	##were - saves heaps of tiny little plots from appearing
 	num_matches = len(matches)
+	skip_16 = 'no'
 	if num_matches==1:
 		width = 1
 		height = 2
+	elif num_matches>16:
+		width = 4
+		height = 4
+		skip_16 = 'yes'
 	else:
 		width = int(num_matches**0.5)
 		height = num_matches/width
@@ -342,9 +373,9 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	ra_main = float(info[2])
 	dec_main = float(info[4])
 	
+	##Set up dedicated left plots
 	main_dims = [0.16, 0.5, 0.29, 0.35]
 	spec_dims = [0.16, 0.1, 0.29, 0.35]
-	
 	ax_main,ax_spectral,tr_fk5,wcs = make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main)
 	
 	##Find the limits out to search area - have to do each edge individual,
@@ -352,9 +383,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	##Even at the same dec, 3 arcmins apart in RA doesn't translate to 3arcmin arcdist - projection
 	##fun. Can use law of cosines on a sphere to work out appropriate delta RA. Use this to define plot
 	##limits for a nice looking plot
-	
 	delta_RA = np.arccos((np.cos((2*closeness)*dr)-np.sin(dec_main*dr)**2)/np.cos(dec_main*dr)**2)/dr
-	
 	plot_lim = (2*closeness) + (0.1/60.0)
 	ra_up_lim = ra_main + delta_RA + (0.1/60.0)
 	ra_down_lim = ra_main - delta_RA - (0.1/60.0)
@@ -367,22 +396,29 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	SIs = []
 	for i in xrange(height):
 		for j in range(width,2*width):
-			try:
-				ind = (i*width)+(j-width)
-				match = matches[ind]
-				ax = plt.subplot(gs[i,j])
-				ax.set_xticklabels([])
-				ax.set_yticklabels([])
-				##TODO - if plot centred on or close to RA,Dec = 0,0 then going to get wrapping problems. Should be able to pull the need
-				##for a wrap from ra_down_lim,ra_up_lim - one should be <0.0, or >360.0. Need to happen inside plot_ind
-				prob,resid,spec_plot,params = plot_ind(match,ax,ind,ax_spectral,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,dom_crit,outcome)
-				if spec_plot=='na':
+			if i*j == 21:
+				if skip_16=='yes':
+					ax = plt.subplot(gs[i,j])
+					ax.set_xticklabels([])
+					ax.set_yticklabels([])
+					ax.text(0.5,0.5,"And %d\nother\nplots" %(num_matches-15),transform=ax.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
+			else:
+				try:
+					ind = (i*width)+(j-width)
+					match = matches[ind]
+					ax = plt.subplot(gs[i,j])
+					ax.set_xticklabels([])
+					ax.set_yticklabels([])
+					##TODO - if plot centred on or close to RA,Dec = 0,0 then going to get wrapping problems. Should be able to pull the need
+					##for a wrap from ra_down_lim,ra_up_lim - one should be <0.0, or >360.0. Need to happen inside plot_ind
+					prob,resid,spec_plot,params = plot_ind(match,ax,ind,ax_spectral,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,dom_crit,outcome)
+					if spec_plot=='na':
+						pass
+					else:
+						SIs.append([params[0],str(ind+1)])
+						spec_labels.append(spec_plot)
+				except IndexError:
 					pass
-				else:
-					SIs.append([params[0],str(ind+1)])
-					spec_labels.append(spec_plot)
-			except IndexError:
-				pass
 	
 	#===========================================================#
 	##Plot the matching criteria information

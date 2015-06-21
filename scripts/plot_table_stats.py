@@ -1,21 +1,22 @@
 #!/usr/bin/python
-import atpy
+from astropy.io.votable import parse as vot_parse
+try:
+	import pyfits as fits
+except ImportError:
+	from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import optparse
-from astroML.plotting import hist
 from statsmodels.robust.scale import mad
 import statsmodels.api as sm
 
 parser = optparse.OptionParser()
 
-parser.add_option('-v', '--input_vot', 
-	help='Enter name of input .vot table')
+parser.add_option('-t', '--input_table', 
+	help='Enter name of input table')
 
 options, args = parser.parse_args()
-
-input_vot = options.input_vot
 
 class source_info:
 	def __init__(self):
@@ -29,15 +30,24 @@ class source_info:
 		self.low_resid = None
 		self.num_cats = None
 
-tdata = atpy.Table(input_vot,verbose=False)
+name = options.input_table
+
+if '.vot' in name:
+	table = vot_parse(name,pedantic=False).get_first_table()
+	tdata = table.array
+elif '.fits' or '.FITS' in name:
+	table = fits.open(name,pedantic=False)
+	tdata = table[1].data
+else:
+	sys.exit('Entered table must either be VOTable or FITS')
 
 SIs = tdata['SI']
 intercepts = tdata['Intercept']
-SI_errs = tdata['e_SI']
-intercept_errs = tdata['e_Intercept']
+#SI_errs = tdata['e_SI']
+#intercept_errs = tdata['e_Intercept']
 num_cats = tdata['Number_cats']
-num_matches = tdata['Number_matches']
-retained_matches = tdata['Retained_matches']
+#num_matches = tdata['Number_matches']
+#retained_matches = tdata['Retained_matches']
 type_matches = tdata['Match_stage']
 low_resids = tdata['Low_resids']
 
@@ -45,10 +55,10 @@ def make_source(ind):
 	source=source_info()
 	source.SI = SIs[ind]
 	source.intercept = intercepts[ind]
-	source.SI_err = SI_errs[ind] 
-	source.intercept_err = intercept_errs[ind]
-	source.num_match = num_matches[ind]
-	source.retained_match = retained_matches[ind]
+	#source.SI_err = SI_errs[ind] 
+	#source.intercept_err = intercept_errs[ind]
+	#source.num_match = num_matches[ind]
+	#source.retained_match = retained_matches[ind]
 	source.type_match = type_matches[ind]
 	source.low_resid = low_resids[ind]
 	source.num_cats = num_cats[ind]
@@ -83,6 +93,9 @@ SIs = [float(source.SI) for source in sources_SIs]
 ##-----------------------------------------------------------------------------------------------------------------------
 ax1 = fig_hist.add_subplot(221)
 plot_by_kde(ax1,SIs,'k',3.0,'All fits (%d sources)' %len(SIs),'-')
+mad_all = mad(np.array(SIs))
+med_all = np.median(np.array(SIs))
+ax1.axvline(med_all,color='k',linestyle='--',linewidth=2.0,label='Median %.2f$\pm$%.2f' %(med_all,mad_all))
 
 ##Compare the good fits to the bad fits
 ##-----------------------------------------------------------------------------------------------------------------------
