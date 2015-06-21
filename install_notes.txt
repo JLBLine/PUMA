@@ -1,0 +1,19 @@
+##J. Line, 21/06/2015
+##To download, simply git clone with the following command:
+
+git clone https://github.com/JLBLine/PUMA.git
+
+##Once downloaded, add these two lines to your bashrc to find PUMA scipts:
+
+export PUMA_DIR=*path-to-you-PUMA-directory*
+export PATH=$PUMA_DIR/scripts:$PATH
+
+##The example bash scripts in $PUMA_DIR/examples use the $PUMA_DIR variable, so
+they will work out of the box if you follow the above, as well as heading to
+$PUMA_DIR/original_cats, and unpacking the catalogues:
+
+tar -vxjf vlssr_names.fits.tar.bz2
+tar -vxjf vizier_mwacs.fits.tar.bz2
+tar -vxjf vizier_mrc.vot.tar.bz2
+tar -vxjf sumss_names.fits.tar.bz2
+tar -vxjf vizier_nvss.fits.tar.bz2
