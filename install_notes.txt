@@ -14,6 +14,6 @@ $PUMA_DIR/original_cats, and unpacking the catalogues:
 
 tar -vxjf vlssr_names.fits.tar.bz2
 tar -vxjf vizier_mwacs.fits.tar.bz2
-tar -vxjf vizier_mrc.vot.tar.bz2
+tar -vxjf vizier_mrc.fits.tar.bz2
 tar -vxjf sumss_names.fits.tar.bz2
 tar -vxjf vizier_nvss.fits.tar.bz2
