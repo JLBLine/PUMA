@@ -18,4 +18,8 @@ tar -vxjf vizier_mrc.fits.tar.bz2
 tar -vxjf sumss_names.fits.tar.bz2
 tar -vxjf vizier_nvss.fits.tar.bz2
 
-Once this is done, typing 'source timing.sh' at the terminal will run PUMA to match MWACS to VLSSr, MRC, SUMSS and NVSS. After this, running 'source plot_outcomes.sh' in the same directory will plot some of the outcomes. Unfortunately, I haven't yet written documentation on plot_outcomes.py, but if you run plot_outcomes.py --help, the options will be summarised (there are quite a few!).
+Once this is done, typing 'source timing.sh' at the terminal will run PUMA to match 
+MWACS to VLSSr, MRC, SUMSS and NVSS. After this, running 'source plot_outcomes.sh' in 
+the same directory will plot some of the outcomes. Unfortunately, I haven't yet written 
+documentation on plot_outcomes.py, but if you run plot_outcomes.py --help, the options 
+will be summarised (there are quite a few!).
