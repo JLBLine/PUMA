@@ -4,6 +4,9 @@ import make_table_lib as mkl
 import plot_outcomes_lib as pol
 import optparse
 import copy
+from matplotlib import rc
+font = {'size': 14}
+rc('font', **font)
 
 parser = optparse.OptionParser()
 
@@ -67,6 +70,9 @@ parser.add_option('-l', '--p_cats',default=0,
 parser.add_option('-q', '--query', default='0',
 	help='Plot the results of certain named sources')
 
+parser.add_option('-w', '--write', default=False,
+	help='Saves the outputs rather than plots on the screen. Saves the number specified ie --write=10. To save all use --write=all')
+
 options, args = parser.parse_args()
 
 ##Set up a bunch of initial parameters-----------------------------------------
@@ -117,6 +123,8 @@ if options.p_cats == 0:
 	p_cats = matched_cats
 else:
 	p_cats = options.p_cats.split(',')
+	
+save_plots = options.write
 ##-----------------------------------------------------------------------------
 ##-----------------------------------------------------------------------------
 
@@ -129,6 +137,7 @@ pol.jstat_thresh = jstat_thresh
 pol.num_freqs = num_freqs
 pol.split = split
 pol.matched_cats = matched_cats
+pol.save_plots = save_plots
 
 mkl.closeness = closeness
 mkl.high_prob = high_prob
@@ -138,7 +147,7 @@ mkl.jstat_thresh = jstat_thresh
 mkl.num_freqs = num_freqs
 mkl.split = split
 
-def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all):
+def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i):
 	##Work out how many cataloges are present
 	present_cats = [cat for cat in src_all.cats if cat!='-100000.0']
 	num_matches = len(set(present_cats))
@@ -156,18 +165,22 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 				if plot_num_catalogues == 0:
 					if plot_num_combs == 0:
 						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+						i+=1
 					else:
 						if num_combs == plot_num_combs: 
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							i+=1
 						else:
 							pass
 				else:
 					if num_matches == plot_num_catalogues:
 						if plot_num_combs == 0:
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							i+=1
 						else:
 							if num_combs == plot_num_combs: 
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+								i+=1
 							else:
 								pass
 			else:
@@ -176,18 +189,22 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 					if plot_num_catalogues == 0:
 						if plot_num_combs == 0:
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+							i+=1
 						else:
 							if num_combs == plot_num_combs: 
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+								i+=1
 							else:
 								pass
 					else:
 						if num_matches == plot_num_catalogues:
 							if plot_num_combs == 0:
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+								i+=1
 							else:
 								if num_combs == plot_num_combs: 
 									pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+									i+=1
 								else:
 									pass
 				else:
@@ -196,27 +213,31 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 			for query in queries:
 				if query in src_all.names: 
 					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
+					i+=1
 				else: 
 					pass
 	else:
 		pass
+	return i
+	
 			
-def plot_accept_type(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,accept_type):
+def plot_accept_type(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,accept_type,i):
 	##If certain types of matches are requested, only plot the correct type of match
 	if plot_types:
 		if p_position:
-			if accept_type == 'position': do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all)
+			if accept_type == 'position': i = do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i)
 		if p_spectral:
-			if accept_type == 'spectral': do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all)
+			if accept_type == 'spectral': i = do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i)
 		if p_combine:
-			if accept_type == 'combine': do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all)
+			if accept_type == 'combine': i = do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i)
 		if p_split:
-			if accept_type == 'split': do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all)
+			if accept_type == 'split': i = do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i)
 	##Otherwise, plot all types of matches
 	else:
-		do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all)
+		i = do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,i)
+	return i
 
-def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_matches,repeated_cats,matches):
+def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_matches,repeated_cats,matches,i):
 	'''Takes a combination of sources, one from each catalogue, with positional probabilities,
 	and determines whether they are a match or not - Algorithm 2 in the write up'''
 	match = accepted_matches[0]
@@ -265,28 +286,21 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	
 	##If prob is higher than threshold, ignore position of sources and accept the match
 	if prob>high_prob:
-		plot_accept_type(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$',num_matches,plot_accept,src_all,'position')
+		i = plot_accept_type(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$',num_matches,plot_accept,src_all,'position',i)
 	else:
 		##look to see if all sources are within the resolution of the
 		##base catalogue or above some probability theshold, if so check with a spec test else reject them
 		if close_test=='passed' or prob>low_prob:  
 			##IF below either threshold, append with the applicable fit label
 			if jstat_resids[0]<=jstat_thresh or chi_resids[0]<=chi_thresh:
-				plot_accept_type(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec',num_matches,plot_accept,src_all,'spectral')
+				i = plot_accept_type(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec',num_matches,plot_accept,src_all,'spectral',i)
 			else:
-				plot_accept_type(comp,accepted_inds,match_crit,'Spec. failed','Reject by spec',num_matches,plot_reject,src_all,'spectral')
+				i = plot_accept_type(comp,accepted_inds,match_crit,'Spec. failed','Reject by spec',num_matches,plot_reject,src_all,'spectral',i)
 		else:
-			plot_accept_type(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_l$',num_matches,plot_reject,src_all,'position')
+			i = plot_accept_type(comp,accepted_inds,match_crit,'N/A','pos reject by $P<P_l$',num_matches,plot_reject,src_all,'position',i)
+	return i
 
-##Open the input text file (output from calculate_bayes.py)
-bayes_comp = open(options.input_bayes).read().split('END_GROUP')
-del bayes_comp[-1]
-
-from matplotlib import rc
-font = {'size': 14}
-rc('font', **font)
-
-for comp in bayes_comp:
+def make_plots(comp,i):
 	##Get the information into nice usable forms, and get rid of empty/pointless
 	##entries
 	chunks = comp.split('START_COMP')
@@ -312,11 +326,11 @@ for comp in bayes_comp:
 	
 	##If no combinations are possible, reject all info (goes into the eyeball document)
 	if len(accepted_matches)==0:
-		plot_accept_type(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A',len(matches),plot_reject,src_all,'position')
+		i = plot_accept_type(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A',len(matches),plot_reject,src_all,'position',i)
 		
 	##If just one combo positionally possible, do a single combo check
 	elif len(accepted_matches)==1:
-		single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,len(matches),repeated_cats,matches)
+		i = single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,len(matches),repeated_cats,matches,i)
 		##(Any plotting gets done within single_match_test)
 		
 	##If more than one combination is positionally possible:
@@ -335,7 +349,7 @@ for comp in bayes_comp:
 			accepted_prob = accepted_probs[dom_source]
 			dom_num = all_probs.index(accepted_prob)
 			
-			plot_accept_type(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_accept,src_all,'spectral')
+			i = plot_accept_type(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_accept,src_all,'spectral',i)
 			
 		##If nothing dominates, send to check if a combined source works
 		else:
@@ -347,6 +361,27 @@ for comp in bayes_comp:
 				accept_type = 'combine'
 			##Plot the combine or split, based on whether accepted or retained to investigate
 			if 'Accepted' in comb_crit:
-				plot_accept_type(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_accept,src_all,accept_type)
+				i = plot_accept_type(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_accept,src_all,accept_type,i)
 			else:
-				plot_accept_type(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_eyeball,src_all,accept_type)
+				i = plot_accept_type(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_eyeball,src_all,accept_type,i)
+	return i
+				
+				
+##Open the input text file (output from calculate_bayes.py)
+bayes_comp = open(options.input_bayes).read().split('END_GROUP')
+del bayes_comp[-1]
+
+if save_plots:
+	try:
+		plot_lim = int(save_plots)
+		i = 0
+		for comp in bayes_comp:
+			if i < plot_lim: i = make_plots(comp,i)
+	except ValueError:
+		for comp in bayes_comp: i = make_plots(comp,0)
+	
+else:
+	for comp in bayes_comp: i = make_plots(comp,0)
+	
+
+

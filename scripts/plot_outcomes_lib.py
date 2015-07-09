@@ -20,6 +20,7 @@ global jstat_thresh
 global num_freqs
 global split
 global matched_cats
+global save_plots
 
 ##Set up a load of markers, colours and alpha values
 markers = ['o','*','s','^','D','8','H','>','<','8','v','d']
@@ -43,21 +44,19 @@ def plot_pos(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
 	else:
 		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None',transform=proj)
 	return p
+
+def plot_errors_comb(style,colour,freq,flux,ferr,name,size,ax):
+	'''Plots errorbars and markers with no line'''
+	ax.errorbar(freq,flux,ferr,
+	marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=1,label=name,linestyle='None')	
 	
-#def plt_ell(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
-	#'''Plots an ellipse - either plots on the ax_main which uses a wcs projection
-	#or on the smaller subplots which don't need transforming'''
-	###Position Angle measures angle from direction to NCP towards increasing RA (east)
-	###Matplotlib plots the angle from the increasing y-axis toward DECREASING x-axis
-	###so have to put in the PA as negative
-	#if proj==1.0:
-		#ell = Ellipse([ra,dec],width=width,height=height,angle=-PA)
-	#else:
-		#ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj)  ##minus???
-	#ax.add_artist(ell)
-	#ell.set_alpha(alpha)
-	#ell.set_facecolor(colour)
-	#ell.set_edgecolor(colour2)
+def plot_pos_comb(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
+	'''Plots a single point with x and y erros bars, with a black border around it'''
+	if proj==1.0:
+		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=1.2,label=name,linestyle='None')
+	else:
+		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=1.2,label=name,linestyle='None',transform=proj)
+	return p
 	
 def plt_ell_empty(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 	'''Plots an ellipse - either plots on the ax_main which uses a wcs projection
@@ -89,7 +88,7 @@ def plt_ell_empty(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 	##Plot the colour by index of catalogue in matched_cats 
 	ind = matched_cats.index(cat)
-	plot_pos(markers[ind],marker_colours[ind],ra,dec,rerr,derr,name,8,ax,proj)
+	plot_pos(markers[ind],marker_colours[ind],ra,dec,rerr,derr,name,marker_sizes[ind],ax,proj)
 	if cat=='mrc':
 		pass
 	else:
@@ -434,6 +433,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 		bbox=props,transform=text_axes.transAxes,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	
 	all_fluxs = []
+	##Fill the left hand plots with information goodness
+	fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA)
 	
 	##If no repeated catalogues to combine, skip
 	if num_matches==0 or num_matches==1:
@@ -466,7 +467,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 			bright_colours = ['#FF6600','#33FF33','#FF47A3','#00ebb3']
 			
 			for freq in xrange(len(comb_freqs)):
-				plot_errors('*',bright_colours[freq],comb_freqs[freq],comb_fluxs[freq],comb_ferrs[freq],'combo',9,ax_spectral)
+				plot_errors_comb('*',bright_colours[freq],comb_freqs[freq],comb_fluxs[freq],comb_ferrs[freq],'combo',16,ax_spectral)
 			comb_p, = ax_spectral.plot(temp_freqs,np.exp(comb_fit.fittedvalues),linestyle='--',linewidth=1.5,color='k')
 			spec_labels.append(comb_p)
 			SIs.append([comb_fit.params[0],'comb'])
@@ -476,13 +477,10 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 				all_fluxs.append(flux)
 			
 			for pos in xrange(len(ra_ws)):
-				patch = plot_pos('*',bright_colours[pos],ra_ws[pos],dec_ws[pos],rerr_ws[pos],derr_ws[pos],combined_names[pos],10,ax_main,ax_main.get_transform("fk5"))
+				patch = plot_pos_comb('*',bright_colours[pos],ra_ws[pos],dec_ws[pos],rerr_ws[pos],derr_ws[pos],combined_names[pos],16,ax_main,ax_main.get_transform("fk5"))
 
 	##==============================================================
 
-	##Fill the left hand plots with information goodness
-	fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA)
-	
 	fig.tight_layout()
 	fig.subplots_adjust(bottom=0.1)
 	fig.subplots_adjust(left=0.15)
@@ -554,4 +552,9 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 		patch_leg.text(0.5,ell_positions[position_ind]-(increment/2-0.04),cat,
 			transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	
-	plt.show()
+	if save_plots:
+		plt.savefig('%s-pumaplot.png' %all_info[0].split()[1],bbox_inches='tight',dpi=100)
+		plt.close()
+			
+	else:
+		plt.show()
