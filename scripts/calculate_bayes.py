@@ -2,10 +2,17 @@
 import atpy
 import numpy as np
 import optparse
+import make_table_lib as mkl
 try:
 	import pyfits as fits
 except ImportError:
 	from astropy.io import fits
+	
+import warnings
+from astropy.utils.exceptions import AstropyUserWarning
+from astropy.io.votable.exceptions import VOTableSpecWarning
+warnings.simplefilter('ignore', category=AstropyUserWarning)
+warnings.simplefilter('ignore', category=VOTableSpecWarning)
 
 ##Get all of the input variables
 parser = optparse.OptionParser()
@@ -24,6 +31,12 @@ parser.add_option('-f', '--matched_freqs',
 	
 parser.add_option('-o', '--out_name', 
 	help='Enter name of output matched group file')
+
+parser.add_option('-r', '--resolution', 
+	help='Resolution of base catalogue in "deg:arcmin:arcsec" ie "00:03:00" for 3arcmins')
+
+parser.add_option('-a', '--prob_thresh', default=0.5,
+	help='Probability threshold; if all combination of sources are under this value, check for any source from a single matched catalogue being outside resolution + error of base source. Default of 0.5')
 	
 options, args = parser.parse_args()
 
@@ -36,6 +49,10 @@ matched_freqs = options.matched_freqs.split(',')
 num_freqs = [len(primary_cat.split('~'))]
 for freq in matched_freqs: num_freqs.append(len(freq.split('~')))
 num_freqs = map(int,num_freqs)
+
+closeness = mkl.dec_to_deg(options.resolution)/2
+
+prob_thresh = float(options.prob_thresh)
 
 out_name = options.out_name
 
@@ -87,6 +104,7 @@ class source_single:
 		self.PA = None
 		self.flag = None
 		self.ID = None
+		self.close = None
 		
 ##The way STILTS is run in cross_match.py means sources in the matched catalogues
 ##may be matched to more than one base catalogue source. Read through all the matches
@@ -276,12 +294,9 @@ for cat,skip in zip(matched_cats,skip_rows):
 				src.fluxs.append(fluxss)
 				src.freqs.append(freqss)
 				src.ferrs.append(ferrss)
-				
 				#print freqss
 				#print fluxss
 				#print ferrss
-				
-				
 			else:
 				src.fluxs.append(str(row[17]))
 				if -100000.0<float(row[18])<=0.0:
@@ -290,7 +305,6 @@ for cat,skip in zip(matched_cats,skip_rows):
 					src.ferrs.append(str(row[18]))
 				src.freqs.append(str(cat_freq))
 				
-			
 ##Add errors in quadrature
 def error(o1,o2):
 	o1 = o1*dr
@@ -359,42 +373,60 @@ def do_bayesian(sources):
 	
 	return prior, bayes_factor, posterior
 	
-out_file = open(out_name,'w+')
-
 ##Make a list of all catalogues (we needed the primary catalogue name in a separate list
 ##when reading in data, now we need all names in one list in the order the appear in the
 ##matched vot tables
 all_cats = matched_cats
 all_cats.insert(0,primary_cat)
 
+out_file = open(out_name,'w+')
+
 ##MAIN LOOP OF THE COOOOOOOODE!!!
 for src in source_matches:
-	##Write all information for each source in an indivudual line for each group
-	##Account for catalogues with more than one frequency
-	out_file.write('START_GROUP\n')
-	for i in xrange(len(src.names)):
-		if type(src.freqs[i])!=list:
-			source_string = "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
-			src.decs[i],src.derrs[i],src.freqs[i],src.fluxs[i],src.ferrs[i],src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
-			out_file.write(source_string)
-		else:
-			flux_str=''
-			for j in xrange(len(src.freqs[i])): flux_str+= "%s %s %s " %(src.freqs[i][j],src.fluxs[i][j],src.ferrs[i][j])
-			source_string = "%s %s %s %s %s %s %s%s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
-			src.decs[i],src.derrs[i],flux_str,src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
-			out_file.write(source_string)
-	
-	##Separate the grouped information in to source_single classes and append to cats
-	##in a specific order
+	##Find the primary position and errors
+	prim_ra,prim_dec,prim_rerr,prim_derr,prim_name = float(src.ras[0]),float(src.decs[0]),float(src.rerrs[0]),float(src.derrs[0]),src.names[0]
+	#if prim_name == "J2326.0-3043":
+		##Separate the grouped information in to source_single classes and append to cats
+		##in a specific order
 	cats = [[] for i in all_cats]
 	for i in xrange(len(src.names)):
 		sing_src = source_single()
 		sing_src.cat = src.cats[i]
 		sing_src.name = src.names[i]
-		sing_src.ra = float(src.ras[i])
-		sing_src.rerr = float(src.rerrs[i])
-		sing_src.dec = float(src.decs[i])
-		sing_src.derr = float(src.derrs[i])
+		ra = float(src.ras[i])
+		rerr = float(src.rerrs[i])
+		dec = float(src.decs[i])
+		derr = float(src.derrs[i])
+		sing_src.ra = ra
+		sing_src.rerr = rerr
+		sing_src.dec = dec
+		sing_src.derr = derr
+		
+		##Test here to see if source lies within ellipse of resolution plus error
+		##Mark down as a flag or not (True = passed test, False = failed test)
+		
+		##Get the positional offset of each repeated source from src_all - 
+		##need to convert closeness in to an RA offset, due to spherical trigonometry
+		##(at different decs, actual distance get's projected differently on to RA - this bit
+		##scales the closeness distnace to the RA offset at a particular dec)
+		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(prim_dec*dr)**2)/np.cos(prim_dec*dr)**2)/dr
+		
+		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
+		ra_dist = calc_dist(prim_ra,ra,prim_dec,prim_dec)
+		dec_dist = prim_dec - dec
+		ra_axis = prim_rerr + abs(delta_RA)
+		dec_axis = prim_derr + closeness
+
+		##Test to see if the source lies with an error ellipse created using semi-major
+		##and minor axes defined by the ra and dec error of the base cat + half the resolution
+		##of the base cat (closeness)
+		ell_test = (ra_dist/ra_axis)**2 + (dec_dist/dec_axis)**2
+		
+		if ell_test <= 1:
+			sing_src.close = True
+		else:
+			sing_src.close = False
+		
 		sing_src.fluxs = src.fluxs[i]
 		sing_src.ferrs = src.ferrs[i]
 		sing_src.major = src.majors[i]
@@ -409,23 +441,88 @@ for src in source_matches:
 	
 	##In the next 5 lines, all possible combinations of the catalogues are created
 	matches = [cats[0]]
-	del cats[0]
-	comps = [cat for cat in cats if len(cat)>0]
+	#del cats[0]
+	comps = [cat for cat in cats[1:] if len(cat)>0]
 	for i in range(0,len(comps)):
 		matches = do_match(matches,comps[i])
 		
+	bayes_infos = []
+		
+	##Calculate the bayesian prob
+	for option in matches:
+		catss = [source.cat for source in option]
+		prior,bayes,posterior =  do_bayesian(option)
+		bayes_infos.append([prior,bayes,posterior])
+	
+	#print bayes_infos
+	remove_cats = []
+
+	##If all of the probabilities are lower than some threshold (default 0.5),
+	##it could be possible that a single source from a single catalogue is messing
+	##up all of the combinations - here, check if any single source from a catalogue
+	##failed the error ellipse test - flag it for removal in remove_cats, and 
+	##remove it from cats
+	if max([bayes[2] for bayes in bayes_infos]) < prob_thresh:
+		for cat in cats:
+			if len(cat) == 1:
+				if cat[0].close == False:
+					print 'here',cats[0][0].name
+					cat_ind = cats.index(cat)
+					cats[cat_ind] = []
+					remove_cats.append(cat[0].cat)
+					
+				##In the next 5 lines, all possible combinations of the catalogues are created
+				##but without any flagged catalogues
+				matches = [cats[0]]
+				#del cats[0]
+				comps = [cat for cat in cats[1:] if len(cat)>0]
+				for i in range(0,len(comps)):
+					matches = do_match(matches,comps[i])
+					
+				bayes_infos = []
+				##Calculate the bayesian prob
+				for option in matches:
+					catss = [source.cat for source in option]
+					prior,bayes,posterior =  do_bayesian(option)
+					bayes_infos.append([prior,bayes,posterior])
+					
+	##TODO possibility that we could remove all of the matched sources - not sure if PUMA
+	##will crash if this happens - need some code to fail safe it!
+	#enough_cats = [1 for cat in cats if len(cats)>0]
+	#print len(enough_cats)
+	#if len(enough_cats) < 2: print 'LONELY SOURCE'
+
+	##Write all information for each source in an indivudual line for each group
+	##Account for catalogues with more than one frequency
+	out_file.write('START_GROUP\n')
+	for i in xrange(len(src.names)):
+		if src.cats[i] in remove_cats:
+			pass
+		else:
+			if type(src.freqs[i])!=list:
+				source_string = "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
+				src.decs[i],src.derrs[i],src.freqs[i],src.fluxs[i],src.ferrs[i],src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
+				out_file.write(source_string)
+			else:
+				flux_str=''
+				for j in xrange(len(src.freqs[i])): flux_str+= "%s %s %s " %(src.freqs[i][j],src.fluxs[i][j],src.ferrs[i][j])
+				source_string = "%s %s %s %s %s %s %s%s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
+				src.decs[i],src.derrs[i],flux_str,src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
+				out_file.write(source_string)
+			
 	out_file.write('START_COMP\n')
 	##For each combination of sources, calculate a bayesian factor, a prior and a posterior probability
 	##Write all source information for that match along with prior, bayes_factor and posterior to a single line
 	##If a catalogue hasn't been matched, create a string of -100000.0. This is neccessary for create_table.py
 	##and plot_image.py to be able to automatically pick out the correct information.
-	for option in matches:
-		catss = [source.cat for source in option]
-		prior,bayes,posterior =  do_bayesian(option)
+	for option in xrange(len(matches)):
+	#for option in matches:
+		catss = [source.cat for source in matches[option]]
+		prior,bayes,posterior =  bayes_infos[option]
 		match_str=''
 		for cat in all_cats:
-			if cat in catss:
-				src = option[catss.index(cat)]
+			if cat in catss and cat not in remove_cats:
+				src = matches[option][catss.index(cat)]
 				if type(src.freqs)!=list:
 					match_str += "%s %s %s %s %s %s %s %s %s %s %s %s %s %s " %(src.cat,src.name,str(src.ra),str(src.rerr),
 					str(src.dec),str(src.derr),src.freqs,src.fluxs,src.ferrs,src.major,src.minor,src.PA,src.flag,src.ID)
