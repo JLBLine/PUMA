@@ -95,6 +95,7 @@ def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 		##If no minor/major information, don't plot
 		if float(minor)!=-100000.0:
 			if float(major)!=-100000.0:
+				
 				plt_ell_empty(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
 
 ##--------------------------------------------------------------------------------------------------------------------
@@ -128,10 +129,10 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 			#ferr = float(info[ind+8])/flux
 			for k in xrange(freq):
 				if info[7+ind+(3*k)]!='-100000.0':
-					freqs.append(float(info[6+ind+(3*k)]))
-					fluxs.append(float(info[7+ind+(3*k)]))
-					ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
-			
+					if np.isnan(float(info[7+ind+(3*k)])) == False:
+						freqs.append(float(info[6+ind+(3*k)]))
+						fluxs.append(float(info[7+ind+(3*k)]))
+						ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
 			major = info[ind+9+((freq-1)*3)]
 			minor = info[ind+10+((freq-1)*3)]
 			PA = info[ind+11+((freq-1)*3)]
@@ -266,7 +267,7 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 			
 			for i in xrange(len(fluxs)):
 				all_fluxs.append(float(fluxs[i]))
-				plot_errors(markers[cat_ind],marker_colours[cat_ind],float(freqs[i]),float(fluxs[i]),float(ferrs[i]),'%s-%.1fMHz' %(name,freq),marker_sizes[cat_ind],ax_spectral)
+				plot_errors(markers[cat_ind],marker_colours[cat_ind],float(freqs[i]),float(fluxs[i]),float(ferrs[i]),'%s-%.1fMHz' %(name,float(freqs[i])),marker_sizes[cat_ind],ax_spectral)
 			for freq in freqs: all_freqs.append(float(freq))
 			for ferr in ferrs: all_ferrs.append(float(ferr))
 				
@@ -286,7 +287,10 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 	dec_high = wcs.wcs_world2pix(ra_main,dec_up_lim,0)
 	ax_main.set_ylim(dec_low[1],dec_high[1])
 	ax_main.set_xlim(ra_high[0],ra_low[0])
+	
+	return all_freqs
 
+def scale_spectral(all_fluxs,all_freqs,ax_spectral):
 	##Make the labels on ax_spectral print in MHz and Jy
 	max_lflux = np.log(max(all_fluxs))
 	min_lflux = np.log(min(all_fluxs))
@@ -434,7 +438,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	
 	all_fluxs = []
 	##Fill the left hand plots with information goodness
-	fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA)
+	all_freqs = fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all_fluxs,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,delta_RA)
 	
 	##If no repeated catalogues to combine, skip
 	if num_matches==0 or num_matches==1:
@@ -478,6 +482,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 			
 			for pos in xrange(len(ra_ws)):
 				patch = plot_pos_comb('*',bright_colours[pos],ra_ws[pos],dec_ws[pos],rerr_ws[pos],derr_ws[pos],combined_names[pos],16,ax_main,ax_main.get_transform("fk5"))
+				
+	scale_spectral(all_fluxs,all_freqs,ax_spectral)
 
 	##==============================================================
 

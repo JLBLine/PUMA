@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#import atpy
 import numpy as np
 import make_table_lib as mkl
 import optparse

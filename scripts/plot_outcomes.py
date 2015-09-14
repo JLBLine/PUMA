@@ -319,6 +319,8 @@ def make_plots(comp,i):
 	##(see apply_criteria_lib for source_group())
 	src_all = mkl.get_allinfo(all_info)
 	
+	#print src_all.names[0]
+	
 	##This line applies positional criteria, and tells us if a simple one catalogue repeat source, returning
 	##how many combinations are possible and statistics on them
 	repeated_cats,accepted_matches,accepted_inds,accepted_probs,jstats,chi_reds,g_stats = mkl.matches_retained(src_all,matches)

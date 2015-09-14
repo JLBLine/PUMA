@@ -207,9 +207,10 @@ def get_allinfo(all_info):
 			fluxs = []
 			ferrs = []
 			for i in xrange(extra+1):
-				freqs.append(float(info[6+(3*i)]))
-				fluxs.append(float(info[7+(3*i)]))
-				ferrs.append(float(info[8+(3*i)]))
+				if np.isnan(float(info[7+(3*i)])) == False:
+					freqs.append(float(info[6+(3*i)]))
+					fluxs.append(float(info[7+(3*i)]))
+					ferrs.append(float(info[8+(3*i)]))
 			src_all.freqs.append(np.array(freqs))
 			src_all.fluxs.append(np.array(fluxs))
 			src_all.ferrs.append(np.array(ferrs))
@@ -239,9 +240,11 @@ def get_srcg(info):
 		fluxss = []
 		ferrss = []
 		for k in xrange(num_freq):
-			freqss.append(float(info[6+ind+(3*k)]))
-			fluxss.append(float(info[7+ind+(3*k)]))
-			ferrss.append(float(info[8+ind+(3*k)]))
+			##Test to see if flux is a nan; skip if so
+			if np.isnan(float(info[7+ind+(3*k)])) == False:
+				freqss.append(float(info[6+ind+(3*k)]))
+				fluxss.append(float(info[7+ind+(3*k)]))
+				ferrss.append(float(info[8+ind+(3*k)]))
 			#if float(info[6+ind+(3*k)])!=-100000.0: all_freqs.append(float(info[6+ind+(3*k)]))
 			#if float(info[7+ind+(3*k)])!=-100000.0: all_fluxs.append(float(info[7+ind+(3*k)]))
 			#if float(info[8+ind+(3*k)])!=-100000.0: all_ferrs.append(float(info[8+ind+(3*k)]))
@@ -287,7 +290,7 @@ def calculate_resids(matches):
 			cat = info[ind]
 			if cat!='-100000.0':
 				for k in xrange(num_freq):
-					if info[7+ind+(3*k)]!='-100000.0':
+					if info[7+ind+(3*k)]!='-100000.0' and np.isnan(float(info[7+ind+(3*k)])) == False:
 						freqs.append(float(info[6+ind+(3*k)]))
 						fluxs.append(float(info[7+ind+(3*k)]))
 						ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
@@ -469,7 +472,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 					set_ferrs.append(ferrs)
 					set_names.append(names)
 					set_cats.append(cats)
-				
+					
 				flux_to_weight = [src_all.fluxs[i][0] for i in xrange(len(src_all.fluxs)) if (src_all.cats[i] not in repeated_cats)]
 				freq_to_weight = [src_all.freqs[i][0] for i in xrange(len(src_all.freqs)) if (src_all.cats[i] not in repeated_cats)]
 				ferr_to_weight = [src_all.ferrs[i][0] for i in xrange(len(src_all.ferrs)) if (src_all.cats[i] not in repeated_cats)]
@@ -725,7 +728,8 @@ def matches_retained(src_all,matches):
 	num_repeated_cats = len(set([cat for cat in cats if cats.count(cat)>1]))
 	##Find index of every source from any catalogue with more than one source matched
 	repeated_inds = [i for i in xrange(len(cats)) if cats.count(cats[i])>1]
-	
+	##TODO: This is only testing the repeated catalogues - sometimes the single source
+	##matched catalogues are outside resolution, and ruin all cross matching.
 	small_test = []
 	no_names = []
 	repeat_names = []
@@ -766,7 +770,7 @@ def matches_retained(src_all,matches):
 			probs_test.append('no')
 		else:
 			probs_test.append('yes')
-	
+			
 	##If the source passes either of the tests, we accept it
 	accepted_matches = []
 	accepted_inds = []
@@ -779,7 +783,7 @@ def matches_retained(src_all,matches):
 			accepted_probs.append(float(match.split()[-1]))
 		else:
 			pass
-	
+
 	##Find the indexes of the repeated sources in the src_all class, that pass the closeness test
 	##or are involved in a probable combination
 	for ind in xrange(len(repeated_inds)):

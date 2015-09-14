@@ -21,7 +21,7 @@ parser.add_option('-p', '--primary_cat',
 	help='Enter primary catalogue prefix')
 	
 parser.add_option('-g', '--primary_freq',
-	help='Enter frequency of primary catalogue')
+	help='Enter frequency of primary catalogue. If more than one frequency, separate by ~')
 	
 parser.add_option('-m', '--matched_cats',
 	help='Enter names of matched cataloges, separated by commas')
@@ -42,7 +42,7 @@ options, args = parser.parse_args()
 
 ##Make all of the information usable
 primary_cat = options.primary_cat
-primary_freq = options.primary_freq
+primary_freqs = options.primary_freq.split('~')
 matched_cats = options.matched_cats.split(',')
 matched_freqs = options.matched_freqs.split(',')
 
@@ -58,7 +58,7 @@ out_name = options.out_name
 
 dr = np.pi/180.0
 
-##Opens each indivudual vot match table
+##Opens each indivudual fits match table
 def open_table(name):
 	table = fits.open(name)
 	data = table[1].data
@@ -66,8 +66,15 @@ def open_table(name):
 	rows = shape[0]
 	nu_1 = table[1].header['nu_1']
 	nu_2 = table[1].header['nu_2']
+	##Get names of columns - this line works for both pyfits and astropy
+	colnames = table[1].columns
+	#print colnames
+	colnames = colnames.info(attrib='name',output=False)['name']
+	#print colnames['name']
+
+	table.close()
 	
-	return data,rows,nu_1,nu_2
+	return data,rows,nu_1,nu_2,colnames
 
 ##A class to store the information for a group of matched sources
 class source_info:
@@ -113,6 +120,7 @@ class source_single:
 
 ##Will contain lists of rows to be skipped that correspond to each catalogue in matched_cats
 skip_rows = []
+table_data = []
 
 for cat in matched_cats:
 	match_names = []
@@ -120,9 +128,13 @@ for cat in matched_cats:
 	skip_row = []
 	##Get data
 	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
-	data,rows,nu_1,nu_2 = open_table(match_name)
+	data,rows,nu_1,nu_2,colnames = open_table(match_name)
+	
+	colstart = colnames.index('%s_name' %cat)
+	
+	table_data.append
 	for row in data:
-		match_names.append(str(row[12]))
+		match_names.append(str(row[colstart]))
 		separations.append(float(row[-1]))
 	
 	##Find repeated names. Should only have one match within each STITLS cross match
@@ -144,6 +156,7 @@ for cat in matched_cats:
 		for ind in ls:
 			if ind != keep_ind: skip_row.append(ind)
 	skip_rows.append(skip_row)
+	table_data.append([data,rows,nu_1,nu_2,colnames,cat,colstart])
 	
 primary_names = []
 source_matches = []
@@ -151,12 +164,12 @@ scaled_source_nums = []
 
 ##Read in the data. First, check each match for a new primary catalogue entry. If new, create a new
 ##source_info class and append primary cat information
-for cat,skip in zip(matched_cats,skip_rows):
-	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
+for cat_data,skip in zip(table_data,skip_rows):
+	#match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
 	
 	###Find the source densities from the tables that were calcualted by cross_match.py,
 	###and add to scaled_source_nums list
-	data,rows,prim_dens,match_dens = open_table(match_name)
+	data,rows,prim_dens,match_dens,colnames,cat,colstart = cat_data
 	
 	if len(scaled_source_nums)==0:
 		scaled_source_nums.append(prim_dens)
@@ -168,7 +181,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 	##needs be
 	base_rerr_avg = np.mean(data['%s_e_RAJ2000' %primary_cat])
 	base_derr_avg = np.mean(data['%s_e_DEJ2000' %primary_cat])
-	base_ferr_avg = np.mean(data['%s_e_S%d' %(primary_cat,float(primary_freq))])
+	base_ferr_avg = np.mean(data['%s_e_S%d' %(primary_cat,float(primary_freqs[0]))])
 	
 	cat_rerr_avg = np.mean(data['%s_e_RAJ2000' %cat])
 	cat_derr_avg = np.mean(data['%s_e_DEJ2000' %cat])
@@ -188,7 +201,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 				src.names.append(str(row[0]))
 				src.ras.append(str(row[1]))
 				src.decs.append(str(row[3]))
-				src.fluxs.append(str(row[5]))
+				
 				##Test the errors for zero or neg values,
 				##and insert a proxy error if so
 				if float(row[2])<=0.0:
@@ -200,11 +213,7 @@ for cat,skip in zip(matched_cats,skip_rows):
 					src.derrs.append(str(base_derr_avg))
 				else:
 					src.derrs.append(str(row[4]))
-				
-				if -100000.0<float(row[6])<=0.0:
-					src.ferrs.append(str(base_ferr_avg))
-				else:
-					src.ferrs.append(str(row[6]))
+	
 				src.majors.append(str(row[7]))
 				src.minors.append(str(row[8]))
 				src.PAs.append(str(row[9]))
@@ -222,11 +231,46 @@ for cat,skip in zip(matched_cats,skip_rows):
 					src.IDs.append('-100000.0')
 				else:
 					src.IDs.append(str(row[11]))
-				src.freqs.append(primary_freq)
-				source_matches.append(src)
-	
+				
+				if len(primary_freqs)>1:
+					freqss = []
+					fluxss = []
+					ferrss = []
+					freqss.append(str(primary_freqs[0]))
+					fluxss.append(str(row[5]))
+					if -100000.0<float(row[6])<=0.0:
+						ferrss.append(str(cat_ferr_avg))
+					else:
+						ferrss.append(str(row[6]))
+					for i in xrange(len(primary_freqs)-1):
+						freqss.append(str(primary_freqs[i+1]))
+						fluxss.append(str(row[12+(2*i)]))
+						if -100000.0<float(row[13+(2*i)])<=0.0:
+							ferrss.append(str(base_ferr_avg))
+						else:
+							ferrss.append(str(row[13+(2*i)]))
+						
+					src.fluxs.append(fluxss)
+					src.freqs.append(freqss)
+					src.ferrs.append(ferrss)
+					#print freqss
+					#print fluxss
+					#print ferrss
+				else:
+					src.freqs.append(primary_freqs[0])
+					src.fluxs.append(str(row[5]))
+					if -100000.0<float(row[6])<=0.0:
+						src.ferrs.append(str(base_ferr_avg))
+					else:
+						src.ferrs.append(str(row[6]))
+					
+				source_matches.append(src)	
+				
+				
+				
 	##Second, get all the matched source data, and append to the appropriate
-	##primary catalogue source
+	##primary catalogue source - we worked out where the information would start
+	##earlier on, at colstart
 	for s_row in xrange(rows):
 		##If in the skip list, it's a repeated source, so don't add it to the matched data
 		if s_row in skip:
@@ -237,37 +281,37 @@ for cat,skip in zip(matched_cats,skip_rows):
 			ind = primary_names.index(primary_name)
 			src = source_matches[ind]
 			src.cats.append(cat)
-			src.names.append(str(row[12]))
-			src.ras.append(str(row[13]))
-			src.decs.append(str(row[15]))
+			src.names.append(str(row[colstart]))       ##-12
+			src.ras.append(str(row[colstart+1]))
+			src.decs.append(str(row[colstart+3]))
 			##Test the errors for zero or neg values,
 			##and insert a proxy error if so
-			if float(row[14])<=0.0:
+			if float(row[colstart+2])<=0.0:
 					src.rerrs.append(str(cat_rerr_avg))
 			else:
-				src.rerrs.append(str(row[14]))
+				src.rerrs.append(str(row[colstart+2]))
 			
-			if float(row[16])<=0.0:
+			if float(row[colstart+4])<=0.0:
 				src.derrs.append(str(cat_derr_avg))
 			else:
-				src.derrs.append(str(row[16]))
-			src.majors.append(str(row[19]))
-			src.minors.append(str(row[20]))
-			src.PAs.append(str(row[21]))
+				src.derrs.append(str(row[colstart+4]))
+			src.majors.append(str(row[colstart+7]))
+			src.minors.append(str(row[colstart+8]))
+			src.PAs.append(str(row[colstart+9]))
 			##Sometimes the flag data is empty - need to change to a null
 			##result, otherwise goes as a space and later indexing gets ruined
-			if str(row[22])=='':
+			if str(row[colstart+10])=='':
 				src.flags.append('-100000.0')
-			elif str(row[22])=='--':
+			elif str(row[colstart+10])=='--':
 				src.flags.append('-100000.0')
 			else:
-				src.flags.append(str(row[22]))
-			if str(row[23])=='':
+				src.flags.append(str(row[colstart+10]))
+			if str(row[colstart+11])=='':
 				src.IDs.append('-100000.0')
-			elif str(row[23])=='--':
+			elif str(row[colstart+11])=='--':
 				src.IDs.append('-100000.0')
 			else:
-				src.IDs.append(str(row[23]))
+				src.IDs.append(str(row[colstart+11]))
 			ind_freq = matched_cats.index(cat)
 			cat_freq = matched_freqs[ind_freq]
 			cat_freqs = cat_freq.split('~')
@@ -278,18 +322,18 @@ for cat,skip in zip(matched_cats,skip_rows):
 				fluxss = []
 				ferrss = []
 				freqss.append(str(cat_freqs[0]))
-				fluxss.append(str(row[17]))
-				if -100000.0<float(row[18])<=0.0:
+				fluxss.append(str(row[colstart+5]))
+				if -100000.0<float(row[colstart+6])<=0.0:
 					ferrss.append(str(cat_ferr_avg))
 				else:
-					ferrss.append(str(row[18]))
+					ferrss.append(str(row[colstart+6]))
 				for i in xrange(len(cat_freqs)-1):
 					freqss.append(str(cat_freqs[i+1]))
-					fluxss.append(str(row[24+(2*i)]))
-					if -100000.0<float(row[25+(2*i)])<=0.0:
+					fluxss.append(str(row[colstart+12+(2*i)]))
+					if -100000.0<float(row[colstart+13+(2*i)])<=0.0:
 						ferrss.append(str(cat_ferr_avg))
 					else:
-						ferrss.append(str(row[25+(2*i)]))
+						ferrss.append(str(row[colstart+13+(2*i)]))
 					
 				src.fluxs.append(fluxss)
 				src.freqs.append(freqss)
@@ -298,11 +342,11 @@ for cat,skip in zip(matched_cats,skip_rows):
 				#print fluxss
 				#print ferrss
 			else:
-				src.fluxs.append(str(row[17]))
-				if -100000.0<float(row[18])<=0.0:
+				src.fluxs.append(str(row[colstart+5]))
+				if -100000.0<float(row[colstart+6])<=0.0:
 					src.ferrs.append(str(cat_ferr_avg))
 				else:
-					src.ferrs.append(str(row[18]))
+					src.ferrs.append(str(row[colstart+6]))
 				src.freqs.append(str(cat_freq))
 				
 ##Add errors in quadrature
@@ -466,7 +510,6 @@ for src in source_matches:
 		for cat in cats:
 			if len(cat) == 1:
 				if cat[0].close == False:
-					print 'here',cats[0][0].name
 					cat_ind = cats.index(cat)
 					cats[cat_ind] = []
 					remove_cats.append(cat[0].cat)

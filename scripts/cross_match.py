@@ -4,6 +4,7 @@ import numpy as np
 import subprocess
 import optparse
 import os
+import sys
 from astropy.table import Table, Column, MaskedColumn
 from astropy.io.votable import parse as vot_parse
 try:
@@ -92,14 +93,14 @@ def get_units(data,detail,unit,unit_type,entries):
 			elif unit=='sec':
 				column = data[detail]*(15.0/3600.0)
 			else:
-				print 'angle coversion error'
+				print 'PUMA angle coversion error: you entered %s \nMust enter either deg, arcmin, arcsec, min or sec as units \nNow exiting' %unit
 		if unit_type=='flux':
 			if unit=='Jy':
 				column = data[detail]
 			elif unit=='mJy':
 				column = data[detail]/1000.0
 			else:
-				print 'flux conversion error'
+				print 'PUMA flux conversion error: you entered \nMust enter eith Jy or mJy as units \nNow exiting' %unit
 	return column
 
 def get_units_blanks(data,detail,unit,unit_type,entries):
@@ -126,14 +127,16 @@ def get_units_blanks(data,detail,unit,unit_type,entries):
 					elif unit=='sec':
 						column[i] = entry*(15.0/3600.0)
 					else:
-						print 'angle coversion error'
+						print 'PUMA angle coversion error: you entered %s \nMust enter either deg, arcmin, arcsec, min or sec as units \nNow exiting' %unit
+						sys.exit()
 				if unit_type=='flux':
 					if unit=='Jy':
 						column[i] = entry
 					elif unit=='mJy':
 						column[i] = entry/1000.0
 					else:
-						print 'flux conversion error'
+						print 'PUMA flux conversion error: you entered \nMust enter eith Jy or mJy as units \nNow exiting' %unit
+						sys.exit()
 			except ValueError:
 				column[i]=-100000.0
 				
@@ -167,14 +170,16 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	freqs = []
 	fluxs = []
 	ferrs = []
+	
 	##This handles the case of more than one frequency in a single catalogue
+	##Assumes the units of all of the fluxes, flux errors are the same
 	if len(details)>13:
 		length = len(details) - 13
 		num_of_freqs = length / 3
 		for i in xrange(num_of_freqs):
 			freqs.append(details[13+(3*i)])
-			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],units[9+(2*i)],'flux',entries))
-			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],units[10+(2*i)],'flux',entries))
+			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],units[4],'flux',entries))
+			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],units[5],'flux',entries))
 			
 	def get_lune(ra1,ra2,dec1,dec2):
 		'''Calculates the steradian coverage of a lune defined by two RA,Dec
