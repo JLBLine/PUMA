@@ -779,6 +779,7 @@ def matches_retained(src_all,matches):
 		##resolution, so we use the offset in RA, not the arcdistance
 		
 		prim_ra = src_all.ras[0]
+		ra = src_all.ras[ind]
 		ra_dist = ra - prim_ra
 		##Code to cope if one source 359.9, other 0.1 etc.
 		if abs(ra_dist) > 180.0:
