@@ -211,7 +211,8 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 					pass
 		else:
 			for query in queries:
-				if query in src_all.names: 
+				if query in src_all.names:
+					print 'here'
 					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 					i+=1
 				else: 

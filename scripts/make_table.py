@@ -67,7 +67,8 @@ for fs in cat_fs:
 	cat_freqs.append(split)
 
 matched_cats = options.matched_cats.split(',')
-pref_cats = ['weighted']
+#pref_cats = ['weighted']
+pref_cats = []
 for pref in options.pref_cats.split(','): pref_cats.append(pref)
 num_freqs = []
 for freq in cat_fs: num_freqs.append(len(freq.split('~')))
@@ -106,9 +107,9 @@ accept_outfile = open("%s-accept.txt" %options.output_name,'w+')
 to_accept_comps = []
 to_accept_accepts = []
 
-def make_entry(match,SI,intercept,SI_err,intercept_err,g_stats,accept_type,low_resids,chired):
+def make_entry(match,SI,intercept,SI_err,intercept_err,g_stats,accept_type,low_resids,chired,match_type):
 	'''Gather all of the information together in to a format that can easily be read in to create
-	the output VOTable'''
+	the output FITS or VOTable'''
 	source = mkl.get_srcg(match)
 	source.SI = SI
 	source.intercept = intercept
@@ -117,9 +118,12 @@ def make_entry(match,SI,intercept,SI_err,intercept_err,g_stats,accept_type,low_r
 	source.low_resids = low_resids
 	sources.append(source)
 	g_stats.accept_type = accept_type
+	g_stats.match_type = match_type
 	sources_stats.append(g_stats)
 	source.chi_resid = chired
-
+	for cat,name in zip(source.cats[1:],source.names[1:]):
+		source.matched_names.append((cat,name))
+		
 def make_accept(comp,g_stats,accept_type,accepted_inds):
 	'''Write accepted source information to *output_name*-accept.txt to plot 
 	the types of matches accepted'''
@@ -195,8 +199,19 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	
 	small_test = []
 	for ra,dec in zip(ras_test,dec_test):
-		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
-		ra_dist = mkl.arcdist(src_all.ras[0],ra,src_all.decs[0],src_all.decs[0])
+		##We set up delta_RA to give us the equivalent offset in RA that corresponds to the
+		##resolution, so we use the offset in RA, not the arcdistance
+		prim_ra = src_all.ras[0]
+		ra_dist = ra - prim_ra
+		##Code to cope if one source 359.9, other 0.1 etc.
+		if abs(ra_dist) > 180.0:
+			if ra > 180.0:
+				ra -= 360.0
+				ra_dist = prim_ra - ra
+			else:
+				prim_ra -= 360.0
+				ra_dist = ra - prim_ra
+		
 		dec_dist = src_all.decs[0] - dec
 		ra_axis = src_all.rerrs[0] + abs(delta_RA)
 		dec_axis = src_all.derrs[0] + closeness
@@ -220,9 +235,9 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	if prob>high_prob:
 		##Accept the source, put it in a way that can be read when constructing the final table
 		if chi_resids[0]<=2:
-			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',0,chi_resids[0])
+			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',0,chi_resids[0],'isolated')
 		else:
-			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',1,chi_resids[0])
+			make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'position',1,chi_resids[0],'isolated')
 			
 		make_accept(comp,g_stats,'position',accepted_inds)
 	else:
@@ -232,9 +247,9 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 			##IF below eith threshold, append with the applicable fit label
 			if jstat_resids[0]<=jstat_thresh or chi_resids[0]<=chi_thresh:
 				if chi_resids[0]<=2:
-					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0,chi_resids[0])
+					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0,chi_resids[0],'isolated')
 				else:
-					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1,chi_resids[0])
+					make_entry(match,params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1,chi_resids[0],'isolated')
 				make_accept(comp,g_stats,'spectral',accepted_inds)
 			else:
 				g_stats.retained_matches = 1
@@ -296,9 +311,9 @@ for comp in bayes_comp:
 		if dom_source!='none':
 			jstat_resids,params,bses,chi_resids = mkl.calculate_resids([accepted_matches[dom_source]])
 			if chi_resids[0]<=2:
-				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0,chi_resids[0])
+				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',0,chi_resids[0],'dominant')
 			else:
-				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1,chi_resids[0])
+				make_entry(accepted_matches[dom_source],params[0][0],params[0][1],bses[0][0],bses[0][1],g_stats,'spectral',1,chi_resids[0],'dominant')
 			make_accept(comp,g_stats,'spectral',accepted_inds)
 		##If nothing dominates, send to check if a combined source works
 		else:
@@ -309,6 +324,7 @@ for comp in bayes_comp:
 				if len(comb_source)==1:
 					sources.append(comb_source[0])
 					g_stats.accept_type = 'combine'
+					g_stats.match_type = 'multiple'
 					##Gather stats
 					sources_stats.append(g_stats)
 					##make_accept makes infomation for plot_extended to use
@@ -323,6 +339,7 @@ for comp in bayes_comp:
 						##Gather stats
 						sources.append(source)
 						new_gstat.accept_type = 'split%s' %letter
+						new_gstat.match_type = 'multiple'
 						sources_stats.append(new_gstat)
 						##make_accept makes infomation for plot_extended to use
 						make_accept(comp,g_stats,'split%s' %letter,accepted_inds)
@@ -493,6 +510,7 @@ for i in xrange(len(type_matches)):
 ##Create many columns of data
 t_name = Column(name='Name',data=names,description='Name based on position of combined source',dtype=str)
 prim_names = [source.names[0] for source in sources]
+
 t_base_name = Column(name='%s_name' %matched_cats[0],data=prim_names,description='Name of %s component' %matched_cats[0],dtype=str)
 t_upra = Column(name='updated_RAJ2000',data=np.array(updated_ras),description='Updated right ascension of source',unit='deg',dtype=float)
 t_updec = Column(name='updated_DECJ2000',data=np.array(updated_decs),description='Updated declination of source',unit='deg',dtype=float)
@@ -518,21 +536,15 @@ for cat in xrange(len(num_freqs)):
 		t_ferr = MaskedColumn(name='e_S_%d' %int(cat_freqs[cat][freq]),data=ferrs,description='Flux error at %.1fMHz' %float(cat_freqs[cat][freq]),mask=ferrs==-100000.0, fill_value=None,unit='Jy',dtype=float)
 		t.add_columns([t_flux,t_ferr])
 
-##Extrapolate the base catalogue frequency flux density, using the fitted values for late comparison
-extrap_freq = cat_freqs[0][0]
-		
-def extrap(freq,SI,intercept):
-	return np.exp((np.log(freq)*SI)+intercept)
-	
-def extrap_error(freq,ext_flux,int_err,SI_err):
-	denom = ext_flux**2
-	numer = int_err**2 + ((np.log(freq)**2)*(SI_err)**2)
-	return np.sqrt(numer/denom)
 	
 SIs = np.array([source.SI for source in sources])
 SI_errs = np.array([source.SI_err for source in sources])
 intercepts = np.array([source.intercept for source in sources])
 intercept_errs = np.array([source.intercept_err for source in sources])
+
+match_type = [source.match_type for source in sources_stats]
+t_match_type = Column(name='Match_type',data=np.array(match_type),description='The PUMA stage at which a decision was made',dtype=str)
+t.add_columns([t_match_type])
 
 ##create a mask for all of the errors reported for matched with only two cats - can't have an error on
 ##a fit to just two data points, so statsmodel spits out nonsense
@@ -542,9 +554,21 @@ SI_err_mask = [num<=2 for num in num_cats]
 t_SIs = Column(name='SI',data=SIs,description='Spectral Index of Fit',dtype=float)
 t_SIerrs = MaskedColumn(name='e_SI',data=SI_errs,description='Std error on Spectral Index of Fit',mask=SI_err_mask,fill_value=None,dtype=float)
 t.add_columns([t_SIs,t_SIerrs])
+
 if options.big_cat:
 	t_int = Column(name='Intercept',data=intercepts,description='Intercept of Fit',dtype=float)
 	t_interr = MaskedColumn(name='e_Intercept',data=intercept_errs,description='Std error on Intercept of Fit',mask=SI_err_mask,fill_value=None,dtype=float)
+	
+	##Extrapolate the base catalogue frequency flux density, using the fitted values for late comparison
+	extrap_freq = cat_freqs[0][0]
+			
+	def extrap(freq,SI,intercept):
+		return np.exp((np.log(freq)*SI)+intercept)
+		
+	def extrap_error(freq,ext_flux,int_err,SI_err):
+		denom = ext_flux**2
+		numer = int_err**2 + ((np.log(freq)**2)*(SI_err)**2)
+		return np.sqrt(numer/denom)
 	
 	extrap_base = np.array([extrap(extrap_freq,source.SI,source.intercept) for source in sources])
 	extrap_base_err = np.array([extrap_error(extrap_freq,extrap_flux,source.intercept_err,source.SI_err) for extrap_flux, source in zip(extrap_base,sources)])
@@ -559,29 +583,38 @@ t.add_columns([t_numcats])
 
 if options.big_cat:
 	numb_matches = [source.num_matches for source in sources_stats]
-	t_numb = Column(name='Number_matches',data=np.array(numb_matches),description='Number of possible combinations in the group match',dtype=int)
+	t_numb = Column(name='Number_matches',data=np.array(numb_matches),description='Number of possible cross match combinations for the given base source',dtype=int)
 	retained_matches = [source.retained_matches for source in sources_stats]
-	t_numret = Column(name='Retained_matches',data=np.array(retained_matches),description='Number of retained (by position) combinations in the group match',dtype=int)
-	t.add_columns([t_numb,t_numret])
+	t_numret = Column(name='Retained_matches',data=np.array(retained_matches),description='Number of retained (by position) cross match combinations for the given base source',dtype=int)
 
-type_matches = [source.accept_type for source in sources_stats]
-t_stage = Column(name='Match_stage',data=np.array(type_matches),description='The PUMA stage at which a decision was made',dtype=str)
-
-low_resids = [source.low_resids for source in sources]
-t_low = Column(name='Low_resids',data=np.array(low_resids),description='Whether the fitted data had residuals above the threshold of chi_reduced<=2. 1 is above threshold, 0 otherwise',dtype=int)
-t.add_columns([t_stage,t_low])
-
-if options.big_cat:
+	type_matches = [source.accept_type for source in sources_stats]
+	t_stage = Column(name='Match_stage',data=np.array(type_matches),description='Details what data/logic was used at the last stage of classification by PUMA',dtype=str)
+	
 	chireds = [source.chi_resid for source in sources]
 	t_chireds = MaskedColumn(name='Chi_sq_red',data=np.array(chireds),description='The chi_reduced value obtained from a wls fit',mask=SI_err_mask,fill_value=None,dtype=float)
-	t.add_columns([t_chireds])
+	##Get the jstat in here??
+	
+	t.add_columns([t_numb,t_numret,t_stage,t_chireds])
+	
+	##Go through all of the matched cat names, and create a list for each one
+	##Fill in blanks where neccessary
+	for cat in matched_cats[1:]:
+		cat_names = []
+		for source in sources:
+			matched_cats = [match_names[0] for match_names in source.matched_names]
+			if cat in matched_cats:
+				cat_ind = matched_cats.index(cat)
+				cat_names.append(source.matched_names[cat_ind][1])
+			else:
+				cat_names.append('')
+		t_cat_name = MaskedColumn(name='%s_names' %cat,data=np.array(cat_names),description='Names of all %s matches, separated by commas' %cat,mask=cat_names=='', fill_value=None,dtype=str)
+		t.add_columns([t_cat_name])
 	
 if options.format == 'vot':
 	t.write("%s.vot" %options.output_name,format='votable',overwrite=True)
 else:
 	t.write("%s.fits" %options.output_name,format='fits',overwrite=True)
 
-#WRITE THE TO EYEBALL+++++++++++++++++++++++++++++++++++++++++++++_____________________________------------------------++++++++++++++++++++++++++++++
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##Write out two files, one that contains all the information for all sources accepted,
 ##and one for the sources rejected/eyeballed - useful for later analysis, and used by

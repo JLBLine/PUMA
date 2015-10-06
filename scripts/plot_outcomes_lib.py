@@ -260,7 +260,7 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 			fluxs = []
 			ferrs = []
 			for i in xrange(extra+1):
-				if info[7+(3*i)]!='-100000.0':
+				if info[7+(3*i)]!='-100000.0' and info[7+(3*i)]!='nan':
 					freqs.append(info[6+(3*i)])
 					fluxs.append(info[7+(3*i)])
 					ferrs.append(info[8+(3*i)])
@@ -457,8 +457,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 		##If the criteria sent the double to be combined, actually plot the fitted line
 		if dom_crit == 'No dom. source':
 			
-			#for freq,flux in zip(set_freqs,set_fluxs):
-				#ax_spectral.plot(freq,flux,linestyle='--',linewidth=1,color='r')
+			for freq,flux in zip(set_freqs,set_fluxs):
+				ax_spectral.plot(freq,flux,linestyle='--',linewidth=1,color='r')
 			
 			split_colors = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
 			for fit in set_fits:

@@ -68,10 +68,7 @@ def open_table(name):
 	nu_2 = table[1].header['nu_2']
 	##Get names of columns - this line works for both pyfits and astropy
 	colnames = table[1].columns
-	#print colnames
 	colnames = colnames.info(attrib='name',output=False)['name']
-	#print colnames['name']
-
 	table.close()
 	
 	return data,rows,nu_1,nu_2,colnames
@@ -429,7 +426,6 @@ out_file = open(out_name,'w+')
 for src in source_matches:
 	##Find the primary position and errors
 	prim_ra,prim_dec,prim_rerr,prim_derr,prim_name = float(src.ras[0]),float(src.decs[0]),float(src.rerrs[0]),float(src.derrs[0]),src.names[0]
-	#if prim_name == "J2326.0-3043":
 		##Separate the grouped information in to source_single classes and append to cats
 		##in a specific order
 	cats = [[] for i in all_cats]
@@ -448,19 +444,24 @@ for src in source_matches:
 		
 		##Test here to see if source lies within ellipse of resolution plus error
 		##Mark down as a flag or not (True = passed test, False = failed test)
-		
-		##Get the positional offset of each repeated source from src_all - 
-		##need to convert closeness in to an RA offset, due to spherical trigonometry
-		##(at different decs, actual distance get's projected differently on to RA - this bit
-		##scales the closeness distnace to the RA offset at a particular dec)
-		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(prim_dec*dr)**2)/np.cos(prim_dec*dr)**2)/dr
-		
-		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
-		ra_dist = calc_dist(prim_ra,ra,prim_dec,prim_dec)
+		##First off, find the offsets. We will set up delta_RA to give us the equivalent offset in RA that corresponds to the
+		##resolution, so we use the offset in RA, not the arcdistance
+		ra_dist = ra - prim_ra
+		##Code to cope if one source 359.9, other 0.1 etc.
+		if abs(ra_dist) > 180.0:
+			if ra > 180.0:
+				ra -= 360.0
+				ra_dist = prim_ra - ra
+			else:
+				prim_ra -= 360.0
+				ra_dist = ra - prim_ra
 		dec_dist = prim_dec - dec
+		
+		##This basically calculates the distance covered by the resolution in RA
+		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(prim_dec*dr)**2)/np.cos(prim_dec*dr)**2)/dr
 		ra_axis = prim_rerr + abs(delta_RA)
 		dec_axis = prim_derr + closeness
-
+		
 		##Test to see if the source lies with an error ellipse created using semi-major
 		##and minor axes defined by the ra and dec error of the base cat + half the resolution
 		##of the base cat (closeness)
@@ -507,7 +508,8 @@ for src in source_matches:
 	##failed the error ellipse test - flag it for removal in remove_cats, and 
 	##remove it from cats
 	if max([bayes[2] for bayes in bayes_infos]) < prob_thresh:
-		for cat in cats:
+		##Don't try to remove base cat, so only [1:]
+		for cat in cats[1:]:
 			if len(cat) == 1:
 				if cat[0].close == False:
 					cat_ind = cats.index(cat)

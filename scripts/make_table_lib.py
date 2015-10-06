@@ -105,6 +105,7 @@ class source_group:
 		self.low_resids = None
 		self.chi_resid = None
 		self.jstat_resid = None
+		self.matched_names = []
 		
 ##Used to store source and group information
 class source_group_sized:
@@ -207,10 +208,15 @@ def get_allinfo(all_info):
 			fluxs = []
 			ferrs = []
 			for i in xrange(extra+1):
-				if np.isnan(float(info[7+(3*i)])) == False:
+				##Test to see if flux is a nan or -100000.0; make sure all flux/freq info is -100000.0 if so
+				if np.isnan(float(info[7+(3*i)])) == False or float(info[7+(3*i)]) != -100000.0:
 					freqs.append(float(info[6+(3*i)]))
 					fluxs.append(float(info[7+(3*i)]))
 					ferrs.append(float(info[8+(3*i)]))
+				else:
+					freqs.append(-100000.0)
+					fluxs.append(-100000.0)
+					ferrs.append(-100000.0)
 			src_all.freqs.append(np.array(freqs))
 			src_all.fluxs.append(np.array(fluxs))
 			src_all.ferrs.append(np.array(ferrs))
@@ -240,11 +246,15 @@ def get_srcg(info):
 		fluxss = []
 		ferrss = []
 		for k in xrange(num_freq):
-			##Test to see if flux is a nan; skip if so
-			if np.isnan(float(info[7+ind+(3*k)])) == False:
+			##Test to see if flux is a nan or -100000.0; make sure all flux/freq info is -100000.0 if so
+			if np.isnan(float(info[7+ind+(3*k)])) == False or float(info[7+(3*i)]) != -100000.0:
 				freqss.append(float(info[6+ind+(3*k)]))
 				fluxss.append(float(info[7+ind+(3*k)]))
 				ferrss.append(float(info[8+ind+(3*k)]))
+			else:
+				freqss.append(-100000.0)
+				fluxss.append(-100000.0)
+				ferrss.append(-100000.0)
 			#if float(info[6+ind+(3*k)])!=-100000.0: all_freqs.append(float(info[6+ind+(3*k)]))
 			#if float(info[7+ind+(3*k)])!=-100000.0: all_fluxs.append(float(info[7+ind+(3*k)]))
 			#if float(info[8+ind+(3*k)])!=-100000.0: all_ferrs.append(float(info[8+ind+(3*k)]))
@@ -325,6 +335,10 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	temp_fluxs = [src_all.fluxs[i] for i in xrange(len(src_all.fluxs)) if src_all.cats[i] not in repeated_cats]
 	temp_ferrs = [src_all.ferrs[i] for i in xrange(len(src_all.ferrs)) if src_all.cats[i] not in repeated_cats]
 	
+	#print temp_freqs
+	#print temp_fluxs
+	#print temp_ferrs
+	
 	##Will need these for fitting/passing on to plotting function
 	comb_freqs = []
 	comb_fluxs = []
@@ -357,6 +371,13 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		rerrs_to_comb = [src_all.rerrs[i] for i in xrange(len(src_all.rerrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		decs_to_comb = [src_all.decs[i] for i in xrange(len(src_all.decs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		derrs_to_comb = [src_all.derrs[i] for i in xrange(len(src_all.derrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		
+		##This is to write down all the names of the sources combined
+		names_to_comb = [src_all.names[i] for i in xrange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		name_string = ''
+		for name in names_to_comb: name_string += ','+name
+		
+		src_g.matched_names.append((repeat_cat,name_string[1:]))
 		
 		##TEST TO SEE IF THE REPEATED SOURCES ARE RESOLVED (BY A GIVEN RESOLUTION THRESHOLD)
 		##Need to do the split test here even if not propagating to the final catalogue
@@ -519,12 +540,25 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	
 	##Get the sources out of the array in list format (which is used later when making the sources
 	##to add to the final table)
-	for freqs in temp_freqs:
-		for freq in freqs: log_temp_freqs.append(np.log(freq))
-	for fluxs in temp_fluxs:
-		for flux in fluxs: log_temp_fluxs.append(np.log(flux))
-	for i in xrange(len(temp_ferrs)):
-		for j in xrange(len(temp_ferrs[i])): log_temp_ferrs.append(temp_ferrs[i][j]/temp_fluxs[i][j])
+	
+	for i in xrange(len(temp_freqs)):
+		for j in xrange(len(temp_freqs[i])):
+			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
+				pass
+			else:
+				log_temp_freqs.append(np.log(temp_freqs[i][j]))
+	for i in xrange(len(temp_freqs)):
+		for j in xrange(len(temp_freqs[i])):
+			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
+				pass
+			else:
+				log_temp_fluxs.append(np.log(temp_fluxs[i][j]))
+	for i in xrange(len(temp_freqs)):
+		for j in xrange(len(temp_freqs[i])):
+			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
+				pass
+			else:
+				log_temp_ferrs.append(temp_ferrs[i][j]/temp_fluxs[i][j])
 
 	##Fit and find residuals to the combined spectrum
 	comb_fit,comb_jstat,comb_bse,comb_chi_red = fit_line(np.array(log_temp_freqs),np.array(log_temp_fluxs),np.array(log_temp_ferrs))
@@ -741,8 +775,19 @@ def matches_retained(src_all,matches):
 		##need to convert closeness in to an RA offset, due to spherical trigonometry
 		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(src_all.decs[0]*dr)**2)/np.cos(src_all.decs[0]*dr)**2)/dr
 		
-		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
-		ra_dist = arcdist(src_all.ras[0],src_all.ras[ind],src_all.decs[0],src_all.decs[0])
+		##We set up delta_RA to give us the equivalent offset in RA that corresponds to the
+		##resolution, so we use the offset in RA, not the arcdistance
+		
+		prim_ra = src_all.ras[0]
+		ra_dist = ra - prim_ra
+		##Code to cope if one source 359.9, other 0.1 etc.
+		if abs(ra_dist) > 180.0:
+			if ra > 180.0:
+				ra -= 360.0
+				ra_dist = prim_ra - ra
+			else:
+				prim_ra -= 360.0
+				ra_dist = ra - prim_ra
 		dec_dist = src_all.decs[0] - src_all.decs[ind]
 		ra_axis = src_all.rerrs[0] + abs(delta_RA)
 		dec_axis = src_all.derrs[0] + closeness
