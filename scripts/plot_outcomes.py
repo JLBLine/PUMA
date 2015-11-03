@@ -212,7 +212,6 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 		else:
 			for query in queries:
 				if query in src_all.names:
-					print 'here'
 					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 					i+=1
 				else: 
@@ -264,8 +263,19 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	
 	small_test = []
 	for ra,dec in zip(ras_test,dec_test):
-		##Even though at same dec, 3arcmis offset in RA isn't neccessarily 3arcmins arcdistance 
-		ra_dist = mkl.arcdist(src_all.ras[0],ra,src_all.decs[0],src_all.decs[0])
+		##We set up delta_RA to give us the equivalent offset in RA that corresponds to the
+		##resolution, so we use the offset in RA, not the arcdistance
+		prim_ra = src_all.ras[0]
+		ra_dist = ra - prim_ra
+		##Code to cope if one source 359.9, other 0.1 etc.
+		if abs(ra_dist) > 180.0:
+			if ra > 180.0:
+				ra -= 360.0
+				ra_dist = prim_ra - ra
+			else:
+				prim_ra -= 360.0
+				ra_dist = ra - prim_ra
+		
 		dec_dist = src_all.decs[0] - dec
 		ra_axis = src_all.rerrs[0] + abs(delta_RA)
 		dec_axis = src_all.derrs[0] + closeness
