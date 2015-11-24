@@ -324,8 +324,12 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	the fluxes and fits a new line. Returns the reduced frequency list, the combined flux and flux error 
 	arrays, as well as the line_fit object and residuals'''
 	
-	##Find repeated catalogues
-	repeated_cats = set([src_all.cats[ind] for ind in accepted_inds if src_all.cats.count(src_all.cats[ind])>1])
+	##Find cat names of all accepted sources
+	accept_cat_names = [src_all.cats[i] for i in accepted_inds]
+	
+	##Find repeated catalogues within the accepted sources
+	repeated_cats = set([cat for cat in accept_cat_names if accept_cat_names.count(cat) > 1])
+	
 	##This won't neccesarily be in the that the cats appear in src_all.cats so reorder
 	repeat_indexs = [src_all.cats.index(cat) for cat in repeated_cats]
 	repeated_cats = [cat for ind,cat in sorted(zip(repeat_indexs,repeated_cats),key=lambda pair: pair[0])]
@@ -399,6 +403,11 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 					big_inds.append([i,j])
 		resolved_diff_inds.append(big_inds)
 		##-------------------------------------------------------------------------------------------------------
+		
+		##TODO If the repeated source catalogue has more than one frequency, but one of these
+		##sources has no flux measurement at that frequency, we will have nan issues. May need to
+		##flag all fluxes at a given frequency if one of the sources is missing a flux
+		#Make a list of fluxes to flag or summin? flag_comb = []
 		
 		comb_flux = sum(flux_to_comb) #Sum the fluxes
 		comb_ferr = np.zeros(1)

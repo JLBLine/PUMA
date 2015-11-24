@@ -24,7 +24,7 @@ global save_plots
 
 ##Set up a load of markers, colours and alpha values
 markers = ['o','*','s','^','D','8','H','>','<','8','v','d']
-marker_sizes = np.array([8,11,8,8,7,10,11,11,11,11,11,11,11]) + 3
+marker_sizes = np.array([8,11,8,8,7,8,11,11,11,11,11,11,11]) + 3
 marker_colours = ['m', "b", "#e5e500", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
 ell_colours1 = ["#C370C8", "#698ACD", "#AA6600", "#D84C77", "#5FC34F", 'k', "#D46733",'m','b','y','r','g']
 ell_colours2 = ['m', "b", "#8B5A00", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
@@ -449,8 +449,13 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 		##just as a guide
 		src_all = mkl.get_allinfo(all_info)
 		
+		##If positionally impossible don't plot combined info
 		if accepted_inds=='Nope':
 			pass
+		##If only one position possible, don't plot combined info
+		elif len(accepted_inds) == 1:
+			pass
+		##Otherwise, see what the combined fluxes look like
 		else:
 			comb_crit, ra_ws, rerr_ws, dec_ws, derr_ws, temp_freqs, comb_freqs, comb_fluxs, comb_ferrs, comb_fit, comb_jstat, comb_chi_red, combined_names, set_freqs, set_fluxs, set_fits = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=yes',len(matches))
 		
