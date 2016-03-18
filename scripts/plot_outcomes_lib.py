@@ -24,25 +24,24 @@ global save_plots
 
 ##Set up a load of markers, colours and alpha values
 markers = ['o','*','s','^','D','8','H','>','<','8','v','d']
-marker_sizes = np.array([8,11,8,8,7,8,11,11,11,11,11,11,11]) + 3
-marker_colours = ['m', "b", "#e5e500", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
-ell_colours1 = ["#C370C8", "#698ACD", "#AA6600", "#D84C77", "#5FC34F", 'k', "#D46733",'m','b','y','r','g']
-ell_colours2 = ['m', "b", "#8B5A00", "r", "g", 'k', "#c0531f",'#660066','#000099','y','#990000','#003300']
-alphas = [0.4,0.4,0.4,0.4,0.4,0.4,0.3,0.45,0.5,0.4,0.5,0.4]
-
+marker_sizes = np.array([8,11,8,8,7,8,9,11,11,11,11,11,11]) + 3
+marker_colours = ['#981adb', "b", "#e5e500", "r", "g", 'k', '#FFB60B', "#c0531f",'#660066','#000099','y','#990000','#003300']
+ell_colours1 = ["#981adb", "#698ACD", "#AA6600", "#D84C77", "#5FC34F", 'k', '#FFB60B', "#D46733",'m','b','y','r','g']
+ell_colours2 = ['#981adb', "b", "#8B5A00", "r", "g", 'k', '#FFB60B',"#c0531f",'#660066','#000099','y','#990000','#003300']
+alphas = [0.4,0.4,0.4,0.4,0.4,0.4,0.25,0.45,0.5,0.4,0.5,0.4]
 
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
 def plot_errors(style,colour,freq,flux,ferr,name,size,ax):
 	'''Plots errorbars and markers with no line'''
 	ax.errorbar(freq,flux,ferr,
-	marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None')
+	marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=0.5,label=name,linestyle='None')
 	
 def plot_pos(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
 	'''Plots a single point with x and y erros bars'''
 	if proj==1.0:
-		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None')
+		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=0.5,label=name,linestyle='None')
 	else:
-		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec=colour,ecolor=colour,markeredgewidth=1,label=name,linestyle='None',transform=proj)
+		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=0.5,label=name,linestyle='None',transform=proj)
 	return p
 
 def plot_errors_comb(style,colour,freq,flux,ferr,name,size,ax):

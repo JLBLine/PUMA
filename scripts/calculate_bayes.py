@@ -13,6 +13,7 @@ from astropy.utils.exceptions import AstropyUserWarning
 from astropy.io.votable.exceptions import VOTableSpecWarning
 warnings.simplefilter('ignore', category=AstropyUserWarning)
 warnings.simplefilter('ignore', category=VOTableSpecWarning)
+from time import ctime
 
 ##Get all of the input variables
 parser = optparse.OptionParser()
@@ -119,6 +120,7 @@ class source_single:
 skip_rows = []
 table_data = []
 
+##TODO: Speed this up (limiting loop at the moment)
 for cat in matched_cats:
 	match_names = []
 	separations = []
@@ -127,6 +129,7 @@ for cat in matched_cats:
 	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
 	data,rows,nu_1,nu_2,colnames = open_table(match_name)
 	
+	##Find which row entry is the matched catalogue name
 	colstart = colnames.index('%s_name' %cat)
 	
 	table_data.append
@@ -155,14 +158,14 @@ for cat in matched_cats:
 	skip_rows.append(skip_row)
 	table_data.append([data,rows,nu_1,nu_2,colnames,cat,colstart])
 	
-primary_names = []
-source_matches = []
+	print 'Got skips for %s' %cat,ctime()
+	
 scaled_source_nums = []
+source_matches = {}
 
 ##Read in the data. First, check each match for a new primary catalogue entry. If new, create a new
 ##source_info class and append primary cat information
 for cat_data,skip in zip(table_data,skip_rows):
-	#match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
 	
 	###Find the source densities from the tables that were calcualted by cross_match.py,
 	###and add to scaled_source_nums list
@@ -191,8 +194,7 @@ for cat_data,skip in zip(table_data,skip_rows):
 		else:
 			row = data[s_row]
 			primary_name = row[0]
-			if primary_name not in primary_names:
-				primary_names.append(primary_name)
+			if primary_name not in source_matches:
 				src = source_info()
 				src.cats.append(primary_cat)
 				src.names.append(str(row[0]))
@@ -260,10 +262,8 @@ for cat_data,skip in zip(table_data,skip_rows):
 						src.ferrs.append(str(base_ferr_avg))
 					else:
 						src.ferrs.append(str(row[6]))
-					
-				source_matches.append(src)	
-				
-				
+				#source_matches.append(src)
+				source_matches[str(row[0])] = src
 				
 	##Second, get all the matched source data, and append to the appropriate
 	##primary catalogue source - we worked out where the information would start
@@ -274,9 +274,8 @@ for cat_data,skip in zip(table_data,skip_rows):
 			pass
 		else:
 			row = data[s_row]
-			primary_name = row[0]
-			ind = primary_names.index(primary_name)
-			src = source_matches[ind]
+			src = source_matches[row[0]]
+			
 			src.cats.append(cat)
 			src.names.append(str(row[colstart]))       ##-12
 			src.ras.append(str(row[colstart+1]))
@@ -423,7 +422,8 @@ all_cats.insert(0,primary_cat)
 out_file = open(out_name,'w+')
 
 ##MAIN LOOP OF THE COOOOOOOODE!!!
-for src in source_matches:
+#for src in source_matches:
+for meh,src in source_matches.iteritems():
 	##Find the primary position and errors
 	prim_ra,prim_dec,prim_rerr,prim_derr,prim_name = float(src.ras[0]),float(src.decs[0]),float(src.rerrs[0]),float(src.derrs[0]),src.names[0]
 		##Separate the grouped information in to source_single classes and append to cats
@@ -499,7 +499,6 @@ for src in source_matches:
 		prior,bayes,posterior =  do_bayesian(option)
 		bayes_infos.append([prior,bayes,posterior])
 	
-	#print bayes_infos
 	remove_cats = []
 
 	##If all of the probabilities are lower than some threshold (default 0.5),
@@ -561,7 +560,6 @@ for src in source_matches:
 	##If a catalogue hasn't been matched, create a string of -100000.0. This is neccessary for create_table.py
 	##and plot_image.py to be able to automatically pick out the correct information.
 	for option in xrange(len(matches)):
-	#for option in matches:
 		catss = [source.cat for source in matches[option]]
 		prior,bayes,posterior =  bayes_infos[option]
 		match_str=''

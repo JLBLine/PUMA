@@ -106,6 +106,12 @@ class source_group:
 		self.chi_resid = None
 		self.jstat_resid = None
 		self.matched_names = []
+		self.vlssr = ''
+		self.mrc = ''
+		self.sumss = ''
+		self.nvss = ''
+		self.inspected = -1
+		self.accept = ''
 		
 ##Used to store source and group information
 class source_group_sized:

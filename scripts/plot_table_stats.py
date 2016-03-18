@@ -49,7 +49,16 @@ num_cats = tdata['Number_cats']
 #num_matches = tdata['Number_matches']
 #retained_matches = tdata['Retained_matches']
 type_matches = tdata['Match_stage']
-low_resids = tdata['Low_resids']
+chi_reds = tdata['Chi_sq_red']
+ 
+ 
+low_resids = []
+
+for chi in chi_reds:
+	if chi <= 2.0:
+		low_resids.append(0.0)
+	else:
+		low_resids.append(1.0)
 
 def make_source(ind):
 	source=source_info()
@@ -92,10 +101,10 @@ SIs = [float(source.SI) for source in sources_SIs]
 ##Plot all of the SIs together
 ##-----------------------------------------------------------------------------------------------------------------------
 ax1 = fig_hist.add_subplot(221)
-plot_by_kde(ax1,SIs,'k',3.0,'All fits (%d sources)' %len(SIs),'-')
+plot_by_kde(ax1,SIs,'k',3.0,'All fits\n(%d sources)' %len(SIs),'-')
 mad_all = mad(np.array(SIs))
 med_all = np.median(np.array(SIs))
-ax1.axvline(med_all,color='k',linestyle='--',linewidth=2.0,label='Median %.2f$\pm$%.2f' %(med_all,mad_all))
+ax1.axvline(med_all,color='k',linestyle='--',linewidth=2.0,label='Median\n%.2f$\pm$%.2f' %(med_all,mad_all))
 
 ##Compare the good fits to the bad fits
 ##-----------------------------------------------------------------------------------------------------------------------
@@ -139,5 +148,22 @@ for ax,label in zip([ax1,ax2,ax3,ax4],[r'$(a)$',r'$(b)$',r'$(c)$',r'$(d)$']):
         verticalalignment='top')#, bbox=dict(boxstyle='none'))
 	ax.tick_params(labelsize=16)
 	
+	##Make vaguely sensible data boundaries
+	if min(SIs) > -3:
+		x_min = min(SIs)
+	else:
+		x_min = -3.0
+		
+	if max(SIs) < 1.5:
+		x_max = max(SIs)
+	else:
+		x_max = 1.5
+	
+	
+	ax.set_xlim(x_min,x_max)
+	ax.set_ylim(ymin=0)
+	
 plt.tight_layout()
-plt.show()
+
+fig_hist.savefig("%s_SIdist.png" %name.split('.')[0],bbox_inches='tight')
+#plt.show()
