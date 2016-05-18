@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import atpy
+#import atpy
 import numpy as np
 import optparse
 import make_table_lib as mkl
@@ -158,8 +158,6 @@ for cat in matched_cats:
 	skip_rows.append(skip_row)
 	table_data.append([data,rows,nu_1,nu_2,colnames,cat,colstart])
 	
-	print 'Got skips for %s' %cat,ctime()
-	
 scaled_source_nums = []
 source_matches = {}
 
@@ -252,9 +250,6 @@ for cat_data,skip in zip(table_data,skip_rows):
 					src.fluxs.append(fluxss)
 					src.freqs.append(freqss)
 					src.ferrs.append(ferrss)
-					#print freqss
-					#print fluxss
-					#print ferrss
 				else:
 					src.freqs.append(primary_freqs[0])
 					src.fluxs.append(str(row[5]))
@@ -334,9 +329,6 @@ for cat_data,skip in zip(table_data,skip_rows):
 				src.fluxs.append(fluxss)
 				src.freqs.append(freqss)
 				src.ferrs.append(ferrss)
-				#print freqss
-				#print fluxss
-				#print ferrss
 			else:
 				src.fluxs.append(str(row[colstart+5]))
 				if -100000.0<float(row[colstart+6])<=0.0:
@@ -507,35 +499,37 @@ for meh,src in source_matches.iteritems():
 	##failed the error ellipse test - flag it for removal in remove_cats, and 
 	##remove it from cats
 	if max([bayes[2] for bayes in bayes_infos]) < prob_thresh:
-		##Don't try to remove base cat, so only [1:]
-		for cat in cats[1:]:
-			if len(cat) == 1:
-				if cat[0].close == False:
-					cat_ind = cats.index(cat)
-					cats[cat_ind] = []
-					remove_cats.append(cat[0].cat)
+		##Check that there isn't only one cat matched, otherwise
+		##we remove the only match and PUMA will accept the base cat
+		##data alone
+		num_matched = len([1 for cat in cats[1:] if len(cat)>1])
+		##Don't remove a match if there is less 2 matched cats
+		if num_matched < 2:
+			pass
+		else:
+			##Don't try to remove base cat, so only [1:]
+			for cat in cats[1:]:
+				if len(cat) == 1:
+					if cat[0].close == False:
+						cat_ind = cats.index(cat)
+						cats[cat_ind] = []
+						remove_cats.append(cat[0].cat)
+						
+					##In the next 5 lines, all possible combinations of the catalogues are created
+					##but without any flagged catalogues
+					matches = [cats[0]]
+					#del cats[0]
+					comps = [cat for cat in cats[1:] if len(cat)>0]
+					for i in range(0,len(comps)):
+						matches = do_match(matches,comps[i])
+						
+					bayes_infos = []
+					##Calculate the bayesian prob
+					for option in matches:
+						catss = [source.cat for source in option]
+						prior,bayes,posterior =  do_bayesian(option)
+						bayes_infos.append([prior,bayes,posterior])
 					
-				##In the next 5 lines, all possible combinations of the catalogues are created
-				##but without any flagged catalogues
-				matches = [cats[0]]
-				#del cats[0]
-				comps = [cat for cat in cats[1:] if len(cat)>0]
-				for i in range(0,len(comps)):
-					matches = do_match(matches,comps[i])
-					
-				bayes_infos = []
-				##Calculate the bayesian prob
-				for option in matches:
-					catss = [source.cat for source in option]
-					prior,bayes,posterior =  do_bayesian(option)
-					bayes_infos.append([prior,bayes,posterior])
-					
-	##TODO possibility that we could remove all of the matched sources - not sure if PUMA
-	##will crash if this happens - need some code to fail safe it!
-	#enough_cats = [1 for cat in cats if len(cats)>0]
-	#print len(enough_cats)
-	#if len(enough_cats) < 2: print 'LONELY SOURCE'
-
 	##Write all information for each source in an indivudual line for each group
 	##Account for catalogues with more than one frequency
 	out_file.write('START_GROUP\n')

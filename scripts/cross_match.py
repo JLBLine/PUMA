@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import atpy
+#import atpy
 import numpy as np
 import subprocess
 import optparse

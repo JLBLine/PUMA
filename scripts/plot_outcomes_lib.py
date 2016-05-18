@@ -563,7 +563,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 			transform=patch_trans,verticalalignment='center',horizontalalignment='center',fontsize=16)
 	
 	if save_plots:
-		plt.savefig('%s-pumaplot.png' %all_info[0].split()[1],bbox_inches='tight',dpi=100)
+		plt.savefig('%s-pumaplot.png' %all_info[0].split()[1],bbox_inches='tight',dpi=75)
 		plt.close()
 			
 	else:

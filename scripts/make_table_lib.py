@@ -110,8 +110,10 @@ class source_group:
 		self.mrc = ''
 		self.sumss = ''
 		self.nvss = ''
+		self.atg20 = ''
+		self.TGSS = ''
 		self.inspected = -1
-		self.accept = ''
+		self.accept = None
 		
 ##Used to store source and group information
 class source_group_sized:
@@ -415,9 +417,14 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		##flag all fluxes at a given frequency if one of the sources is missing a flux
 		#Make a list of fluxes to flag or summin? flag_comb = []
 		
-		comb_flux = sum(flux_to_comb) #Sum the fluxes
-		comb_ferr = np.zeros(1)
-		for ferr in ferr_to_comb: comb_ferr+= ferr**2 #Add the errors in quadrature
+		##flux_to_comb is a list containing arrays, want to sum
+		##the flux at every frequency
+		comb_flux = flux_to_comb[0] + flux_to_comb[1]
+		for c_flux in flux_to_comb[2:]: comb_flux += c_flux
+
+		##Add the flux error in quadrature
+		comb_ferr = ferr_to_comb[0]**2 +  ferr_to_comb[1]**2
+		for c_ferr in ferr_to_comb[2:]: comb_ferr += c_ferr**2
 		comb_ferr = comb_ferr**0.5
 
 		##Need these later to fit the combined flux and to populate a new src_g if
