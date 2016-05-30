@@ -6,7 +6,6 @@ from matplotlib import patches
 from matplotlib.patches import Ellipse
 from itertools import combinations
 from astropy.wcs import WCS
-from wcsaxes import WCSAxes
 import make_table_lib as mkl
 
 dr = np.pi/180.0
@@ -56,6 +55,42 @@ def plot_pos_comb(style,colour,ra,dec,rerr,derr,name,size,ax,proj):
 	else:
 		p = ax.errorbar(ra,dec,derr,rerr,marker=style,ms=size,mfc=colour,mec='k',ecolor=colour,markeredgewidth=1.2,label=name,linestyle='None',transform=proj)
 	return p
+
+def get_ellipse_coords(a=0.0, b=0.0, x=0.0, y=0.0, angle=0.0, k=2):
+    """ Draws an ellipse using (360*k + 1) discrete points; based on pseudo code
+    given at http://en.wikipedia.org/wiki/Ellipse
+    k = 1 means 361 points (degree by degree)
+    a = major axis distance,
+    b = minor axis distance,
+    x = offset along the x-axis
+    y = offset along the y-axis
+    angle = clockwise rotation [in degrees] of the ellipse;
+        * angle=0  : the ellipse is aligned with the positive x-axis
+        * angle=30 : rotated 30 degrees clockwise from positive x-axis
+    """
+    pts = np.zeros((360*k+1, 2))
+    beta = -(-90 + angle) * np.pi/180.0
+    sin_beta = np.sin(beta)
+    cos_beta = np.cos(beta)
+    alpha = np.radians(np.r_[0.:360.:1j*(360*k+1)])
+ 
+    sin_alpha = np.sin(alpha)
+    cos_alpha = np.cos(alpha)
+    
+    x_length = (a * cos_alpha * cos_beta - b * sin_alpha * sin_beta)
+    x_diff = []
+    
+    for x_d in x_length:
+		if x_d < 0:
+			x_diff.append(-np.arccos((np.cos(float(x_d)*dr)-np.sin(y*dr)**2)/np.cos(y*dr)**2)/dr)
+		else:
+			x_diff.append(np.arccos((np.cos(float(x_d)*dr)-np.sin(y*dr)**2)/np.cos(y*dr)**2)/dr)
+    
+    x_diff = np.array(x_diff)
+    x_coords = x + x_diff
+    y_coords = y + (a * cos_alpha * sin_beta + b * sin_alpha * cos_beta)
+
+    return x_coords, y_coords
 	
 def plt_ell_empty(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 	'''Plots an ellipse - either plots on the ax_main which uses a wcs projection
@@ -63,24 +98,17 @@ def plt_ell_empty(ra,dec,height,width,PA,ax,colour,colour2,alpha,proj):
 	##Position Angle measures angle from direction to NCP towards increasing RA (east)
 	##Matplotlib plots the angle from the increasing y-axis toward DECREASING x-axis
 	##so have to put in the PA as negative
+	
+	
+	x_coords, y_coords = get_ellipse_coords(a=height/2.0, b=width/2.0, x=ra, y=dec, angle=PA, k=2)
+	
 	if proj==1.0:
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,linewidth=1.5)  ##minus???
-		ell.set_facecolor('none')
-		ell.set_edgecolor(colour2)
-		ax.add_artist(ell)
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,linewidth=1.5)
-		ell.set_facecolor(colour)
-		ell.set_alpha(0.3)
-		ax.add_artist(ell)
+		ax.plot(x_coords,y_coords,color=colour2,linewidth=1.5)
+		ax.fill(x_coords, y_coords, colour, alpha=0.3)
 	else:
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj,linewidth=1.5)  ##minus???
-		ell.set_facecolor('none')
-		ell.set_edgecolor(colour2)
-		ax.add_artist(ell)
-		ell = Ellipse([ra,dec],width=width,height=height,angle=-PA,transform=proj,linewidth=1.5)
-		ell.set_facecolor(colour)
-		ell.set_alpha(0.3)
-		ax.add_artist(ell)
+		
+		ax.plot(x_coords,y_coords,color=colour2,linewidth=1.5,transform=proj)
+		ax.fill(x_coords, y_coords, colour, alpha=0.3,transform=proj)
 	
 ##POSSIBLE EXTENSION - MAKE GENERIC SO IT CYCLES THROUGH SOME COLOURS, NOT SPECIFIED COLOURS
 ##FOR A PARTICULAR CATALOGUE
@@ -94,7 +122,6 @@ def plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,proj):
 		##If no minor/major information, don't plot
 		if float(minor)!=-100000.0:
 			if float(major)!=-100000.0:
-				
 				plt_ell_empty(ra,dec,float(major),float(minor),float(PA),ax,ell_colours1[ind],ell_colours2[ind],alphas[ind],proj)
 
 ##--------------------------------------------------------------------------------------------------------------------
@@ -140,6 +167,7 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 			#ferrs.append(ferr)
 			##Plot each source on the individual combo plot
 			plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax,1.0)
+			#plot_all(cat,name,ra,rerr,dec,derr,major_RA,minor,PA,ax,1.0)
 	##Sort the frequencies, fluxes and log them
 	log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 	sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
@@ -190,8 +218,7 @@ def make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main):
 	
 	##Create the ws, and the main axis based on that. Plot top left
 	wcs = WCS(header=header)
-	ax_main = WCSAxes(fig, main_dims, wcs=wcs)
-	fig.add_axes(ax_main)
+	ax_main = fig.add_axes(main_dims,projection=wcs)
 	tr_fk5 = ax_main.get_transform("fk5")
 	
 	#ax_main.set_title("All sources within 3'.0")
@@ -238,7 +265,7 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
 			ell = patches.Ellipse((ra_main,dec_main),2*delta_RA,4*(closeness),angle=0,
 				transform=tr_fk5,linestyle='dashdot',fc='none',lw=1.1,color='k')
 			ax_main.add_patch(ell)
-		
+			
 		##Plot positions and elliptical fits
 		plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax_main,tr_fk5)
 		
@@ -392,7 +419,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	dec_up_lim = dec_main + plot_lim
 	dec_down_lim = dec_main - plot_lim
 	
-	##Plot the individual combination plots - do this first so the error bars go over
+	###Plot the individual combination plots - do this first so the error bars go over
 	##the top of the line plots
 	spec_labels = []
 	SIs = []
