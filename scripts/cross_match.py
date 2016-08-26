@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #import atpy
-import numpy as np
+#import numpy as np
+from numpy import array,arange,sin,cos,pi,empty,where,ma
 import subprocess
 import optparse
 import os
@@ -11,6 +12,7 @@ try:
 	import pyfits as fits
 except ImportError:
 	from astropy.io import fits
+from scipy.stats import mode
 	
 parser = optparse.OptionParser()
 
@@ -72,14 +74,14 @@ else:
 	warnings.simplefilter('ignore', category=AstropyUserWarning)
 	warnings.simplefilter('ignore', category=VOTableSpecWarning)
 
-dr = np.pi/180.0
+dr = pi/180.0
 
 def get_units(data,detail,unit,unit_type,entries):
 	'''A function for either returning an array of -100000.0s of
 	a given length, or taking a given array and performing unit conversion,
 	given the specified units'''
 	if detail=='-':
-		column = np.empty(entries); column.fill(-100000.0)
+		column = empty(entries); column.fill(-100000.0)
 	else:
 		if unit_type=='angle':
 			if unit=='deg':
@@ -108,7 +110,7 @@ def get_units_blanks(data,detail,unit,unit_type,entries):
 	a given length, or taking a given array and performing unit conversion,
 	given the specified units. Can handle the input array having a blank
 	input. Slower than get_units'''
-	column = np.empty(entries); column.fill(-100000.0)
+	column = empty(entries); column.fill(-100000.0)
 	if detail=='-':
 		return column
 	else:
@@ -141,6 +143,105 @@ def get_units_blanks(data,detail,unit,unit_type,entries):
 				column[i]=-100000.0
 				
 		return column
+	
+def get_lune(ra1,ra2,dec1,dec2):
+		'''Calculates the steradian coverage of a lune defined by two RA,Dec
+		coords'''
+		return abs((ra2*dr-ra1*dr)*(sin(dec2*dr)-sin(dec1*dr)))
+	
+def shift_test(ra_range,dec_range):
+	'''Finds the RA and Dec bounds of a catalogue. If the catalogue
+	crosses the 0/360 but not the -180/180 bound, report the lower RA bound
+	as negative. If it crosses both the 0/360 and -180/180, report the larger
+	RA value as the lower bound so that we get ra2 -> ra1, instead of ra1 -> ra2'''
+	
+	ra_range = array(ra_range)
+	min_ra,max_ra = min(ra_range),max(ra_range)
+	min_dec,max_dec = min(dec_range),max(dec_range)
+	
+	min_shifts = []
+	max_shifts = []
+
+	##Here we iteratively shift the zero reference point of 0-360 deg
+	##In this way, when we set the shift value to an empty patch of sky,
+	##we get the same minimum and maximum shifted RA values. We can
+	##then look for repeated min, max values via the mode of colleted
+	##min, maxes
+	shift_array =  arange(0,359.0,0.1)
+	for shift in shift_array:
+		##Find the indexes of all extries above shift value
+		##and then shift them by -360
+		shift_inds = where(ra_range > shift)
+		shift_values = ra_range[shift_inds] - 360
+		
+		##Find all values not for shifting
+		remain_inds = where(ra_range <= shift)
+		remain_values = ra_range[remain_inds]
+		
+		if len(shift_values) > 0 and len(remain_values) == 0:
+			min_shift,max_shift = shift_values.min(),shift_values.max()
+		elif len(shift_values) == 0 and len(remain_values) > 0:	
+			min_shift,max_shift = remain_values.min(),remain_values.max()
+		elif len(shift_values) > 0 and len(remain_values) > 0:
+			min_shift,max_shift = min([shift_values.min(),remain_values.min()]),max([shift_values.max(),remain_values.max()])
+		else:
+			print 'shoulnay happen'
+		##Collect the minimum and maximum for later
+		min_shifts.append(min_shift)
+		max_shifts.append(max_shift)
+			
+
+	##Find the mode of the mins and maxes
+	missing_inds_min = where(min_shifts == mode(min_shifts)[0][0])
+	missing_inds = where(max_shifts == mode(max_shifts)[0][0])
+	if len(missing_inds_min) != len(missing_inds):
+		print 'PUMA warning: mismatched length modes when deriving the bounds of the catalogues'
+	
+	##Use them to find out the bounds of all missing RAs
+	missing = shift_array[missing_inds]
+	
+	##If the catalogue spans from 0 - 360.0, there won't be a mode - check using
+	##the length of the mode
+	len_mode_min, len_mode_max = mode(min_shifts)[1][0],mode(max_shifts)[1][0]
+	
+	lower_ra = None
+	upper_ra = None
+	
+	##In this case the distribution covers all RA:
+	if len_mode_min == 1 and len_mode_max == 1:
+		lower_ra, upper_ra = -180,180.0
+	else:
+		##In this case, the data crosses the 0/360 case
+		if missing.min() > min_ra and missing.max() < max_ra:
+			##The data also crosses the -180/180 border - in this case, return
+			##the higher value ra as the lower bound - otherwise the bounds
+			##report the missing RAs rather than the RAs we care about
+			if 180 >= missing.min() >= 0.0 and 180.0 >= missing.max() >= 0.0:
+				lower_ra, upper_ra = missing.max(), missing.min()
+			##Same if both negative - report the larger as the lower bound
+			elif missing.min() < 0.0 and missing.max() < 0.0:
+				lower_ra, upper_ra = missing.max(), missing.min()
+			##Otherwise we need to make the upper missing RA as the lower bound,
+			##so we don't just pick out the missing RAs. If greater than 180,
+			##shift to make negative
+			else:
+				
+				if missing.max() > 180.0:
+					lower_ra =  missing.max() - 360.0
+				else:
+					lower_ra =  missing.max()
+					
+				if missing.min() > 180.0:
+					upper_ra = missing.min() - 360.0
+				else:
+					upper_ra = missing.min()
+		else:
+			##Other wise just a simple case where no crossing of either
+			##0/360 or -180/180
+			lower_ra, upper_ra = min_ra,max_ra
+			#print min_ra,max_ra,missing.min(),missing.max()
+	
+	return lower_ra,upper_ra,min_dec,max_dec
 			
 def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	##Find all of the data in the columns as specified by the
@@ -160,11 +261,11 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	minor = get_units_blanks(data,details[10],units[8],'angle',entries)
 	
 	if details[11]=='-':
-		flags = np.empty(entries); flags.fill(-100000.0)
+		flags = empty(entries); flags.fill(-100000.0)
 	else:
 		flags = data[details[11]]
 	if details[12]=='-':
-		ID = np.empty(entries); ID.fill(-100000.0)
+		ID = empty(entries); ID.fill(-100000.0)
 	else:
 		ID = data[details[12]]
 	freqs = []
@@ -181,10 +282,7 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 			fluxs.append(get_units_blanks(data,details[13+1+(3*i)],units[4],'flux',entries))
 			ferrs.append(get_units_blanks(data,details[13+2+(3*i)],units[5],'flux',entries))
 			
-	def get_lune(ra1,ra2,dec1,dec2):
-		'''Calculates the steradian coverage of a lune defined by two RA,Dec
-		coords'''
-		return abs((ra2*dr-ra1*dr)*(np.sin(dec2*dr)-np.sin(dec1*dr)))
+	lower_ra,upper_ra,min_dec,max_dec = shift_test(RA,Dec)
 	
 	##Count the number of sources within the requested user lune to calculate the scaled
 	##source density of the catalogues
@@ -197,10 +295,12 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 		sources_in_bounds =  [i for i in xrange(len(RA)) if (RA[i]>=ra_lims[0] or RA[i]<=ra_lims[1]) and (Dec[i]>=dec_lims[0] and Dec[i]<=dec_lims[1])]
 		extra = 360.0 - ra_lims[0]
 		area = get_lune(0,ra_lims[1]+extra,dec_lims[0],dec_lims[1])
-	scaled_source_density = (4*np.pi*len(sources_in_bounds))/area
+	scaled_source_density = (4*pi*len(sources_in_bounds))/area
+			
+	bound_lims = '%.5f,%.5f,%.5f,%.5f' %(lower_ra,upper_ra,min_dec,max_dec)
 			
 	##Create a new table, and populate with the data in correct units
-	t=Table(masked=True,meta={'src_dens':scaled_source_density})
+	t=Table(masked=True,meta={'src_dens':scaled_source_density,'bound_lims':bound_lims})
 	t_names = Column(name='%s_name' %prefix,data=names,description='Name from catalogue',dtype=str)
 	t_ras = Column(name='%s_RAJ2000' %prefix,data=RA,description='Right Ascension of source (J2000)',unit='deg',dtype=float)
 	t_rerrs = Column(name='%s_e_RAJ2000' %prefix,data=RA_error,description='Error on Right Ascension',unit='deg',dtype=float)
@@ -213,12 +313,12 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	t_PAs = Column(name='%s_PA' %prefix,data=PA,description='Fitted Position Angle',unit='deg',dtype=float)
 	mask = []
 	for i in flags:
-		if type(i)==np.ma.core.MaskedConstant: mask.append(True)
+		if type(i)==ma.core.MaskedConstant: mask.append(True)
 		else: mask.append(False)
 	t_flags = MaskedColumn(name='%s_flag' %prefix,data=flags,description='Any meta flag for inclusion',mask=mask,fill_value='--',dtype=str)
 	mask = []
 	for i in ID:
-		if type(i)==np.ma.core.MaskedConstant: mask.append(True)
+		if type(i)==ma.core.MaskedConstant: mask.append(True)
 		else: mask.append(False)
 	t_fields = MaskedColumn(name='%s_FieldID' %prefix,data=ID,description='If avaiable, image field ID',mask=mask,fill_value='--',dtype=str)
 	
@@ -234,7 +334,7 @@ def make_table(data,details,units,prefix,ra_lims,dec_lims):
 	#t.add_keyword('%s_nu' %prefix,str(scaled_source_density))
 	t.write('simple_%s.fits' %prefix,overwrite=True,format='fits')
 	
-	return scaled_source_density
+	return scaled_source_density,bound_lims
 
 
 ##Read in all of the user inputs and use them to create the simple tables
@@ -266,8 +366,8 @@ def read_table(name):
 data1 = read_table(options.table1)
 data2 = read_table(options.table2)
 
-ss_dens1 = make_table(data1,details1,units1,prefix1,ra_lims1,dec_lims1)
-ss_dens2 = make_table(data2,details2,units2,prefix2,ra_lims2,dec_lims2)
+ss_dens1,bound_lims_1 = make_table(data1,details1,units1,prefix1,ra_lims1,dec_lims1)
+ss_dens2,bound_lims_2 = make_table(data2,details2,units2,prefix2,ra_lims2,dec_lims2)
 
 ##Using the appropriate user values, run stilts to produce a cross matched
 ##table with all possible matches and all possible information included
@@ -291,5 +391,5 @@ else:
 stilts_table = fits.open("matched_%s_%s.fits" %(prefix1,prefix2))
 match_data = stilts_table[1].data
 
-match_table = Table(data=match_data,meta={"nu_1":ss_dens1,"nu_2":ss_dens2})
+match_table = Table(data=match_data,meta={"nu_1":ss_dens1,"nu_2":ss_dens2,'bound_lims_1':bound_lims_1,'bound_lims_2':bound_lims_2})
 match_table.write("matched_%s_%s.fits" %(prefix1,prefix2),overwrite=True,format='fits')

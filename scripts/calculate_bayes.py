@@ -14,6 +14,8 @@ from astropy.io.votable.exceptions import VOTableSpecWarning
 warnings.simplefilter('ignore', category=AstropyUserWarning)
 warnings.simplefilter('ignore', category=VOTableSpecWarning)
 from time import ctime
+#from cross_match import get_lune
+
 
 ##Get all of the input variables
 parser = optparse.OptionParser()
@@ -59,20 +61,29 @@ out_name = options.out_name
 
 dr = np.pi/180.0
 
-##Opens each indivudual fits match table
+def get_lune(ra1,ra2,dec1,dec2):
+	'''Calculates the steradian coverage of a lune defined by two RA,Dec
+	coords'''
+	return abs((ra2*dr-ra1*dr)*(np.sin(dec2*dr)-np.sin(dec1*dr)))
+
+##Opens each indvidual fits match table
 def open_table(name):
 	table = fits.open(name)
 	data = table[1].data
 	shape = data.shape
 	rows = shape[0]
+	##Find the number of sources scaled for to the whole sky
 	nu_1 = table[1].header['nu_1']
 	nu_2 = table[1].header['nu_2']
+	##Find the boundaries of the catalogue coverage
+	bound_1 = table[1].header['bound_lims_1']
+	bound_2 = table[1].header['bound_lims_2']
 	##Get names of columns - this line works for both pyfits and astropy
 	colnames = table[1].columns
 	colnames = colnames.info(attrib='name',output=False)['name']
 	table.close()
 	
-	return data,rows,nu_1,nu_2,colnames
+	return data,rows,nu_1,nu_2,colnames,bound_1,bound_2
 
 ##A class to store the information for a group of matched sources
 class source_info:
@@ -127,12 +138,12 @@ for cat in matched_cats:
 	skip_row = []
 	##Get data
 	match_name = 'matched_%s_%s.fits' %(primary_cat,cat)
-	data,rows,nu_1,nu_2,colnames = open_table(match_name)
+	data,rows,nu_1,nu_2,colnames,bound_1,bound_2 = open_table(match_name)
 	
 	##Find which row entry is the matched catalogue name
 	colstart = colnames.index('%s_name' %cat)
 	
-	table_data.append
+	#table_data.append
 	for row in data:
 		match_names.append(str(row[colstart]))
 		separations.append(float(row[-1]))
@@ -156,9 +167,10 @@ for cat in matched_cats:
 		for ind in ls:
 			if ind != keep_ind: skip_row.append(ind)
 	skip_rows.append(skip_row)
-	table_data.append([data,rows,nu_1,nu_2,colnames,cat,colstart])
+	table_data.append([data,rows,nu_1,nu_2,colnames,cat,colstart,bound_1,bound_2])
 	
 scaled_source_nums = []
+cat_bounds = []
 source_matches = {}
 
 ##Read in the data. First, check each match for a new primary catalogue entry. If new, create a new
@@ -167,13 +179,16 @@ for cat_data,skip in zip(table_data,skip_rows):
 	
 	###Find the source densities from the tables that were calcualted by cross_match.py,
 	###and add to scaled_source_nums list
-	data,rows,prim_dens,match_dens,colnames,cat,colstart = cat_data
+	data,rows,prim_dens,match_dens,colnames,cat,colstart,prim_bound,match_bound = cat_data
 	
 	if len(scaled_source_nums)==0:
 		scaled_source_nums.append(prim_dens)
 		scaled_source_nums.append(match_dens)
+		cat_bounds.append(prim_bound)
+		cat_bounds.append(match_bound)
 	else:
 		scaled_source_nums.append(match_dens)
+		cat_bounds.append(match_bound)
 	##If any of the errors are negative or zero, the whole match stops and fails - 
 	##take an average of rerr, derr and ferr here, and subsitute that in later if
 	##needs be
@@ -366,6 +381,182 @@ def calc_dist(RA1,RA2,Dec1,Dec2):
 	alpha = np.arccos(cosalpha)
 	return alpha
 
+def get_sky_overlap(catalogue_bounds):
+	'''Works out the area of the sky over which the catalogues overlap - 
+	able to split into multiple lunes of so required by present catalogue'''
+	
+	##The prior requires knowing the sky area over which the catalogues overlap
+	##Start off setting the region as the base catalogue limits (first catalogue in list catalogue_bounds)
+	##The following code has been set up to think of RA as going from -180 to 180 deg - if the 
+	##base catalogue crosses 180/-180, split overlap region into two - the code can then treat base the same
+	
+	##Intially start with sky region of base catalogue
+	##Get the limits from cross_match.py
+	overlap_ra_lower,overlap_ra_upper,overlap_dec_lower,overlap_dec_upper = map(float,catalogue_bounds[0].split(','))
+	#print catalogue_bounds
+	#print overlap_ra_lower,overlap_ra_upper,overlap_dec_lower,overlap_dec_upper
+	overlap_ra_lowers = []
+	overlap_ra_uppers = []
+	
+	##From cross_match.py, if the base catalogue crosses the 0/360 deg RA border, it's lower ra
+	##bound will be negative - can leave as one region
+	if overlap_ra_lower < 0:
+		overlap_ra_lowers.append(overlap_ra_lower)
+		overlap_ra_uppers.append(overlap_ra_upper)
+	##Or, if all RA sit between 0 and 180, can again leave alone
+	elif overlap_ra_upper <= 180.0:
+		overlap_ra_lowers.append(overlap_ra_lower)
+		overlap_ra_uppers.append(overlap_ra_upper)
+	##Or, if all sits btw 180-360, set to being negative:
+	elif overlap_ra_lower > 180.0 and 180.0 <= overlap_ra_upper < 360.0:
+		overlap_ra_lowers.append(float(overlap_ra_lower) - 360.0)
+		overlap_ra_uppers.append(float(overlap_ra_upper) - 360.0)
+		
+	##If crosses the -180/180 bound, split into two
+	else:
+		current_ra_lower = float(overlap_ra_lower)
+		current_ra_upper = float(overlap_ra_upper)
+		overlap_ra_lower = -180
+		overlap_ra_upper = current_ra_upper - 360.0
+		overlap_ra_lowers.append(overlap_ra_lower)
+		overlap_ra_uppers.append(overlap_ra_upper)
+		
+		overlap_ra_lower_2 = current_ra_lower
+		overlap_ra_upper_2 = 180.0
+		overlap_ra_lowers.append(overlap_ra_lower_2)
+		overlap_ra_uppers.append(overlap_ra_upper_2)
+		
+	##For each matched catalogue
+	for bound in catalogue_bounds[1:]:
+		##Get limits as defined in cross_match.py
+		ra_lower,ra_upper,dec_lower,dec_upper = map(float,bound.split(','))
+		##In this case, the matched catalogue crosses both the 0/360
+		##and -180/180 lines - split into two for this case
+		if ra_lower > ra_upper:
+			for ind in xrange(len(overlap_ra_lowers)):
+				##using float here means we make a copy rather than assigning a name to element of list
+				overlap_ra_lower,overlap_ra_upper = float(overlap_ra_lowers[ind]),float(overlap_ra_uppers[ind])
+				
+				##This overlap region has been killed, so ignore
+				if overlap_ra_lower == None:
+					pass
+				else:
+					
+					##Matched cat doesn't cover bound lune at all
+					if overlap_ra_lower > ra_upper and overlap_ra_upper < ra_lower:
+						overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+					
+					##In this case, there are two regions within the current lune that
+					##the matched catalogue covers, with the central region of that lune
+					##not covered by the matched catalogue - must create two new lunes
+					elif overlap_ra_lower < ra_upper and overlap_ra_upper > ra_lower:
+						##First replace current upper overlap with ra_lower cross to create
+						##one of the replace lunes
+						overlap_ra_uppers[ind] = ra_upper
+						##Then, make a new lune bound by ra_lower, and the current overlap_ra_upper
+						overlap_ra_lowers.append(ra_lower)
+						overlap_ra_uppers.append(overlap_ra_upper)
+					##Otherwise, there is only one part of the current lune covered by the matched catalogue;
+					##just adjust the edge of the lunes if applicable
+					else:
+						if overlap_ra_lower < ra_upper < overlap_ra_upper:
+							overlap_ra_uppers[ind] = ra_upper
+						if overlap_ra_lower < ra_lower < overlap_ra_upper:
+							overlap_ra_lowers[ind] = ra_lower
+		
+		else:
+			##If the matched catalogue spans 0/360 RA border, things
+			##are straight forward
+			if ra_lower < 0.0 or ra_upper < 180.0:
+				for ind in xrange(len(overlap_ra_lowers)):
+					overlap_ra_lower,overlap_ra_upper = overlap_ra_lowers[ind],overlap_ra_uppers[ind]
+					##If region already killed, skip
+					if overlap_ra_lower == None:
+						pass
+					else:
+						##for these conditions, there is no overlap at all
+						if ra_lower > overlap_ra_upper:
+							overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+						elif ra_upper < overlap_ra_lower:
+							overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+						else:
+							if ra_lower > overlap_ra_lower:
+								overlap_ra_lowers[ind] = ra_lower
+							if ra_upper < overlap_ra_upper:
+								overlap_ra_uppers[ind] = ra_upper
+			##If the matched catalogue is fully between 180,360, set RAs to negatives
+			elif ra_lower > 180.0:
+				ra_lower -= 360.0
+				ra_upper -= 360.0
+				for ind in xrange(len(overlap_ra_lowers)):
+					overlap_ra_lower,overlap_ra_upper = overlap_ra_lowers[ind],overlap_ra_uppers[ind]
+					##If region already killed, skip
+					if overlap_ra_lower == None:
+						pass
+					else:
+						##No overlap between region and matched catalogue
+						if ra_lower > overlap_ra_upper:
+							overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+						##No overlap between region and matched catalogue
+						elif ra_upper < overlap_ra_lower:
+							overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+						##Otherwise, adjust region boundaries appropriately
+						else:
+							if ra_lower > overlap_ra_lower:
+								overlap_ra_lowers[ind] = ra_lower
+							if ra_upper < overlap_ra_upper:
+								overlap_ra_uppers[ind] = ra_upper
+				
+			##Here we may need to do the splitting of the matched catalogue into two ranges
+			##Only here because matched catalogue crosses 180/-180 boundary
+			else:
+				ra_lower_cross = ra_upper - 360.0
+				current_ra_upper = float(overlap_ra_upper)
+				
+				for ind in xrange(len(overlap_ra_lowers)):
+					##using float here means we make a copy rather than assigning a name to element of list
+					overlap_ra_lower,overlap_ra_upper = float(overlap_ra_lowers[ind]),float(overlap_ra_uppers[ind])
+					if overlap_ra_lower == None:
+						pass
+					else:
+						##Matched cat doesn't cover bound lune at all
+						if overlap_ra_lower > ra_lower_cross and overlap_ra_upper < ra_lower:
+							overlap_ra_lowers[ind],overlap_ra_uppers[ind] = None,None
+						
+						##In this case, there are two regions within the current lune that
+						##the matched catalogue covers, with the central region of that lune
+						##not covered by the matched catalogue - must create two new lunes
+						elif overlap_ra_lower < ra_lower_cross and overlap_ra_upper > ra_lower:
+							##First replace current upper overlap with ra_lower cross to create
+							##one of the replace lunes
+							overlap_ra_uppers[ind] = ra_lower_cross
+							##Then, make a new lune bound by ra_lower, and the current overlap_ra_upper
+							overlap_ra_lowers.append(ra_lower)
+							overlap_ra_uppers.append(overlap_ra_upper)
+						##Otherwise, there is only one part of the current lune covered by the matched catalogue;
+						##just adjust the edge of the lunes if applicable
+						else:
+							if overlap_ra_lower < ra_lower_cross < overlap_ra_upper:
+								overlap_ra_uppers[ind] = ra_lower_cross
+							if overlap_ra_lower < ra_lower < overlap_ra_upper:
+								overlap_ra_lowers[ind] = ra_lower
+				
+		##Declination is way easier - doesn't loop!!
+		if dec_lower > overlap_dec_lower: overlap_dec_lower = dec_lower
+		if dec_upper < overlap_dec_upper: overlap_dec_upper = dec_upper
+	
+	#return overlap_ra_lowers, overlap_ra_uppers, overlap_dec_lower, overlap_dec_upper
+
+	sky_area = 0
+
+	for i in xrange(len(overlap_ra_lowers)):
+		if overlap_ra_lowers[i] == None:
+			pass
+		else:
+			sky_area += get_lune(overlap_ra_lowers[i],overlap_ra_uppers[i],overlap_dec_lower,overlap_dec_upper)
+			
+	return sky_area
+
 def do_bayesian(sources):
 	##Calculate the weight of each source based on astrometric precision
 	#for source in sources: print source.rerr,source.derr 
@@ -389,14 +580,19 @@ def do_bayesian(sources):
 	##Work out which catalogues are present in this combination
 	comps_names = [src.cat for src in sources]
 	inds = [all_cats.index(name) for name in comps_names]
-	
 	##Find out the scaled number of sources for the catalogues present
 	source_nums = [scaled_source_nums[i] for i in inds]
+	##Find the sky boundaries of all catalogue involved in cross-match
+	catalogue_bounds = [cat_bounds[i] for i in inds]
 	
 	#Calcualte prior
 	prod_nums = 1
 	for i in source_nums: prod_nums *= i
 	prior = (source_nums[0]/prod_nums)
+	
+	sky_area = get_sky_overlap(catalogue_bounds)
+	
+	prior *= ((sky_area / 4*np.pi)**(1 - len(source_nums)))
 	
 	##Calculate posterior
 	#posterior = (bayes_factor*prior)/(1+(bayes_factor*prior))   ##The approximation to the posterior in the lims of small priors - 
@@ -415,11 +611,14 @@ out_file = open(out_name,'w+')
 
 ##MAIN LOOP OF THE COOOOOOOODE!!!
 #for src in source_matches:
+
+loop = 0
+
 for meh,src in source_matches.iteritems():
 	##Find the primary position and errors
 	prim_ra,prim_dec,prim_rerr,prim_derr,prim_name = float(src.ras[0]),float(src.decs[0]),float(src.rerrs[0]),float(src.derrs[0]),src.names[0]
-		##Separate the grouped information in to source_single classes and append to cats
-		##in a specific order
+	##Separate the grouped information in to source_single classes and append to cats
+	##in a specific order
 	cats = [[] for i in all_cats]
 	for i in xrange(len(src.names)):
 		sing_src = source_single()
@@ -538,11 +737,13 @@ for meh,src in source_matches.iteritems():
 			pass
 		else:
 			if type(src.freqs[i])!=list:
+				#print src.cats[i],src.PAs[i],src.flags[i],src.IDs[i]
 				source_string = "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
 				src.decs[i],src.derrs[i],src.freqs[i],src.fluxs[i],src.ferrs[i],src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
 				out_file.write(source_string)
 			else:
 				flux_str=''
+				#print src.cats[i],src.PAs[i],src.flags[i],src.IDs[i]
 				for j in xrange(len(src.freqs[i])): flux_str+= "%s %s %s " %(src.freqs[i][j],src.fluxs[i][j],src.ferrs[i][j])
 				source_string = "%s %s %s %s %s %s %s%s %s %s %s %s\n" %(src.cats[i],src.names[i],src.ras[i],src.rerrs[i],
 				src.decs[i],src.derrs[i],flux_str,src.majors[i],src.minors[i],src.PAs[i],src.flags[i],src.IDs[i])
@@ -580,4 +781,5 @@ for meh,src in source_matches.iteritems():
 		out_file.write(match_str)
 	out_file.write('END_COMP\n')
 	out_file.write('END_GROUP\n')
+		
 out_file.close()

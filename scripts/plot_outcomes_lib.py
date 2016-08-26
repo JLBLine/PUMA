@@ -196,7 +196,7 @@ def plot_ind(match,ax,ind_ax,ax_spectral,ra_bottom,ra_top,dec_bottom,dec_top,dom
 	else:
 		spec_plot, = ax_spectral.plot(np.exp(log_freqs),np.exp(lin_fit.fittedvalues),linestyle='-',linewidth=1,alpha=1)
 	
-	return prob,jstat,spec_plot,lin_fit.params
+	return prob,jstat,spec_plot,lin_fit.params,bse
 
 def make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main):
 	
@@ -403,8 +403,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	dec_main = float(info[4])
 	
 	##Set up dedicated left plots
-	main_dims = [0.16, 0.5, 0.29, 0.35]
-	spec_dims = [0.16, 0.1, 0.29, 0.35]
+	main_dims = [0.15, 0.5, 0.29, 0.35]
+	spec_dims = [0.15, 0.1, 0.29, 0.35]
 	ax_main,ax_spectral,tr_fk5,wcs = make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main)
 	
 	##Find the limits out to search area - have to do each edge individual,
@@ -440,11 +440,14 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 					ax.set_yticklabels([])
 					##TODO - if plot centred on or close to RA,Dec = 0,0 then going to get wrapping problems. Should be able to pull the need
 					##for a wrap from ra_down_lim,ra_up_lim - one should be <0.0, or >360.0. Need to happen inside plot_ind
-					prob,resid,spec_plot,params = plot_ind(match,ax,ind,ax_spectral,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,dom_crit,outcome)
+					prob,resid,spec_plot,params,bse = plot_ind(match,ax,ind,ax_spectral,ra_down_lim,ra_up_lim,dec_down_lim,dec_up_lim,dom_crit,outcome)
 					if spec_plot=='na':
 						pass
 					else:
-						SIs.append([params[0],str(ind+1)])
+						SI_err = '%.2f' %bse[0]
+						if SI_err == 'inf': SI_err = 'N/A'
+						
+						SIs.append([params[0],SI_err,str(ind+1)])
 						spec_labels.append(spec_plot)
 				except IndexError:
 					pass
@@ -454,7 +457,8 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	match1 = matches[0].split()
 	src_g = mkl.get_srcg(match1)
 	
-	text_axes = fig.add_axes([0.45,0.5,0.125,0.35])
+	#spec_leg = fig.add_axes([0.435,0.1,0.125,0.35])
+	text_axes = fig.add_axes([0.445,0.5,0.125,0.35])
 	text_axes.axis('off')
 
 	##Plot the matching information
@@ -483,7 +487,7 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 			pass
 		##Otherwise, see what the combined fluxes look like
 		else:
-			comb_crit, ra_ws, rerr_ws, dec_ws, derr_ws, temp_freqs, comb_freqs, comb_fluxs, comb_ferrs, comb_fit, comb_jstat, comb_chi_red, combined_names, set_freqs, set_fluxs, set_fits = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=yes',len(matches))
+			comb_crit, ra_ws, rerr_ws, dec_ws, derr_ws, temp_freqs, comb_freqs, comb_fluxs, comb_ferrs, comb_fit, comb_jstat, comb_chi_red, comb_bse, combined_names, set_freqs, set_fluxs, set_fits, set_bses = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=yes',len(matches))
 		
 		##If the criteria sent the double to be combined, actually plot the fitted line
 		if dom_crit == 'No dom. source':
@@ -492,12 +496,14 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 				ax_spectral.plot(freq,flux,linestyle='--',linewidth=1,color='r')
 			
 			split_colors = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
-			for fit in set_fits:
+			for fit,bse in zip(set_fits,set_bses):
 				ind = set_fits.index(fit)
 				ax_spectral.plot(set_freqs[ind],set_fluxs[ind],linestyle='--',linewidth=1.0,color=split_colors[ind],alpha=0.7)
 				split_p, = ax_spectral.plot(temp_freqs,np.exp(fit.params[1] + np.log(temp_freqs)*fit.params[0]),linestyle='-',linewidth=1.5,color=split_colors[ind])
 				spec_labels.append(split_p)
-				SIs.append([fit.params[0],'split %d' %(ind+1)])
+				SI_err = '%.2f' %bse[0]
+				if SI_err == 'inf': SI_err = 'N/A'
+				SIs.append([fit.params[0],SI_err,'split %d' %(ind+1)])
 			
 			bright_colours = ['#FF6600','#33FF33','#FF47A3','#00ebb3']
 			
@@ -505,7 +511,10 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 				plot_errors_comb('*',bright_colours[freq],comb_freqs[freq],comb_fluxs[freq],comb_ferrs[freq],'combo',16,ax_spectral)
 			comb_p, = ax_spectral.plot(temp_freqs,np.exp(comb_fit.fittedvalues),linestyle='--',linewidth=1.5,color='k')
 			spec_labels.append(comb_p)
-			SIs.append([comb_fit.params[0],'comb'])
+			
+			SI_err = '%.2f' %comb_bse[0]
+			if SI_err == 'inf': SI_err = 'N/A'
+			SIs.append([comb_fit.params[0],SI_err,'comb'])
 			
 			##Send the combined fluxes to the all_fluxs so that ax_spectral is scaled appropriately
 			for flux in comb_fluxs:
@@ -525,14 +534,14 @@ def create_plot(comp,accepted_inds,match_crit,dom_crit,outcome):
 	##Make room at the top of the plot for a legend for ax_main, make the legend
 	fig.subplots_adjust(top=0.85)
 	
-	leg_labels = [r'$\alpha_{%s}$ = %.2f' %(SI[1],SI[0]) for SI in SIs]
+	leg_labels = [r'$\alpha_{%s}$ = %.2f$\pm$%s' %(SI[2],SI[0],SI[1]) for SI in SIs]
 	main_handles,main_labels = ax_main.get_legend_handles_labels()
 	
 	main_leg = fig.add_axes([0.05,0.87,0.9,0.05])
 	main_leg.axis('off')
 	main_leg.legend(main_handles,main_labels,loc='lower center',prop={'size':12},ncol=8) #,bbox_to_anchor=(0,1.02),
 	
-	spec_leg = fig.add_axes([0.45,0.1,0.125,0.35])
+	spec_leg = fig.add_axes([0.445,0.1,0.125,0.35])
 	spec_leg.axis('off')
 
 	##Stop the legend from having so many entries that it goes off the plot	

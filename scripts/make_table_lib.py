@@ -182,8 +182,10 @@ def get_allinfo(all_info):
 	in a matched group from an output file of calculate_bayes.py. Gets all of the information
 	from each entry and returns them in a source_group() class'''
 	src_all = source_group()
+	#print '-----------------------------'
 	for entry in all_info:
 		info = entry.split()
+		#print info
 		src_all.cats.append(info[0])
 		src_all.names.append(info[1])
 		src_all.ras.append(float(info[2]))
@@ -201,6 +203,7 @@ def get_allinfo(all_info):
 		##type. This deals with cats with multiple freqs, otherwise
 		##the position, name etc will have to be repeated for each
 		##frequency
+		
 		if len(info)==14:
 			src_all.freqs.append(np.array([float(info[6])]))          
 			src_all.fluxs.append(np.array([float(info[7])]))
@@ -331,7 +334,6 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	'''Takes a src_group() class that contains all group info. Indentifies which catalogue is repeated, combines
 	the fluxes and fits a new line. Returns the reduced frequency list, the combined flux and flux error 
 	arrays, as well as the line_fit object and residuals'''
-	
 	##Find cat names of all accepted sources
 	accept_cat_names = [src_all.cats[i] for i in accepted_inds]
 	
@@ -369,10 +371,13 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		num_of_repeat = [i for i in xrange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		num_of_repeats.append(num_of_repeat)
 	
+	#print src_all.cats
+	#print repeated_cats
 	##For each repeated catalogue:
 	for repeat_cat in repeated_cats:
 		##Find the frequency/ies of repeated cat
 		comb_freq = src_all.freqs[src_all.cats.index(repeat_cat)]
+		
 		##Find the flux/es of the repeat_cat sources that were accepted by retained_sources()
 		flux_to_comb = [src_all.fluxs[i] for i in xrange(len(src_all.fluxs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		##Find the flux error/s of the repeat_cat sources that were accepted by retained_sources()
@@ -421,6 +426,8 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		##the flux at every frequency
 		comb_flux = flux_to_comb[0] + flux_to_comb[1]
 		for c_flux in flux_to_comb[2:]: comb_flux += c_flux
+		
+		#print flux_to_comb
 
 		##Add the flux error in quadrature
 		comb_ferr = ferr_to_comb[0]**2 +  ferr_to_comb[1]**2
@@ -683,7 +690,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				for flux in fluxs: comb_fluxs_sing.append(flux)
 			for ferrs in comb_ferrs:
 				for ferr in ferrs: comb_ferrs_sing.append(ferr)
-			return dom_crit, ra_ws, rerr_ws, dec_ws, derr_ws, np.exp(log_temp_freqs), comb_freqs_sing, comb_fluxs_sing, comb_ferrs_sing, comb_fit, comb_jstat, comb_chi_red, combined_names, set_freqs, set_fluxs, set_fits
+			return dom_crit, ra_ws, rerr_ws, dec_ws, derr_ws, np.exp(log_temp_freqs), comb_freqs_sing, comb_fluxs_sing, comb_ferrs_sing, comb_fit, comb_jstat, comb_chi_red, comb_bse, combined_names, set_freqs, set_fluxs, set_fits, set_bse
 		else:
 			if dom_crit == 'Rejected -\nsplit':
 				##It's been failed by split, but had passed by combine
@@ -717,7 +724,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				for flux in fluxs: comb_fluxs_sing.append(flux)
 			for ferrs in comb_ferrs:
 				for ferr in ferrs: comb_ferrs_sing.append(ferr)
-			return dom_crit, ra_ws, rerr_ws, dec_ws, derr_ws, np.exp(log_temp_freqs), comb_freqs_sing, comb_fluxs_sing, comb_ferrs_sing, comb_fit, comb_jstat, comb_chi_red, ["(combined-%s)" %cat for cat in repeated_cats], set_freqs ,set_fluxs, set_fits
+			return dom_crit, ra_ws, rerr_ws, dec_ws, derr_ws, np.exp(log_temp_freqs), comb_freqs_sing, comb_fluxs_sing, comb_ferrs_sing, comb_fit, comb_jstat, comb_chi_red, comb_bse, ["(combined-%s)" %cat for cat in repeated_cats], set_freqs ,set_fluxs, set_fits, set_bse
 		else:
 			return dom_crit, 'nyope', comb_jstat, comb_chi_red
 			
