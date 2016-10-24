@@ -2,13 +2,13 @@
 START_TIME=$SECONDS
 cross_match.py --separation=180 \
  	--table1=$PUMA_DIR/original_cats/vizier_mwacs.fits \
- 	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,cmp,ID_S \
+ 	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,-,- \
  	--units1=deg,arcmin,deg,arcmin,Jy,Jy,deg,arcmin,arcmin \
  	--ra_lims1=0,100 \
  	--dec_lims1=-55,-20 \
  	--prefix1=mwacs \
  	--table2=$PUMA_DIR/original_cats/vlssr_names.fits \
- 	--details2=Name,RA_J2000,RA_err,DEC_J2000,DEC_err,74,Flux,Flux_err,PA,major,minor,Flags,Field \
+ 	--details2=Name,RA_J2000,RA_err,DEC_J2000,DEC_err,74,Flux,Flux_err,PA,major,minor,-,- \
  	--units2=deg,deg,deg,deg,Jy,Jy,deg,arcsec,arcsec \
  	--ra_lims2=0,140 \
  	--dec_lims2=-20,40 \
@@ -21,13 +21,13 @@ echo $PRINT_1
 ##-------------------------------------------------------------------------------------------------
 cross_match.py --separation=180 \
 	--table1=$PUMA_DIR/original_cats/vizier_mwacs.fits \
-	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,cmp,ID_S \
+	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,-,- \
 	--units1=deg,arcmin,deg,arcmin,Jy,Jy,deg,arcmin,arcmin \
 	--ra_lims1=0,100 \
 	--dec_lims1=-55,-20 \
 	--prefix1=mwacs \
 	--table2=$PUMA_DIR/original_cats/vizier_mrc.fits \
-	--details2=MRC,_RAJ2000,e_RA2000,_DEJ2000,e_DE2000,408,S408,e_S408,-,-,-,Mflag,- \
+	--details2=MRC,_RAJ2000,e_RA2000,_DEJ2000,e_DE2000,408,S408,e_S408,-,-,-,-,- \
 	--units2=deg,sec,deg,arcsec,Jy,Jy,-,-,- \
 	--ra_lims2=150,250 \
 	--dec_lims2=-30,10 \
@@ -40,13 +40,13 @@ echo $PRINT_2
 ##-------------------------------------------------------------------------------------------------
 cross_match.py --separation=180 \
 	--table1=$PUMA_DIR/original_cats/vizier_mwacs.fits \
-	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,cmp,ID_S \
+	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,-,- \
 	--units1=deg,arcmin,deg,arcmin,Jy,Jy,deg,arcmin,arcmin \
 	--ra_lims1=0,100 \
 	--dec_lims1=-55,-20 \
 	--prefix1=mwacs \
 	--table2=$PUMA_DIR/original_cats/sumss_names.fits \
-	--details2=name,_RAJ2000,e_RAJ2000,_DEJ2000,e_DEJ2000,843,St,e_St,PA,MajAxis,MinAxis,-,Mosaic \
+	--details2=name,_RAJ2000,e_RAJ2000,_DEJ2000,e_DEJ2000,843,St,e_St,PA,MajAxis,MinAxis,-,- \
 	--units2=deg,arcsec,deg,arcsec,mJy,mJy,deg,arcsec,arcsec \
 	--ra_lims2=0,100 \
 	--dec_lims2=-60,-30 \
@@ -59,13 +59,13 @@ echo $PRINT_3
 ##-------------------------------------------------------------------------------------------------
 cross_match.py --separation=180 \
 	--table1=$PUMA_DIR/original_cats/vizier_mwacs.fits \
-	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,cmp,ID_S \
+	--details1=MWACS,RAJ2000,e_RAJ2000,DEJ2000,e_DEJ2000,180,S180,e_S180,PA,Maj,Min,-,- \
 	--units1=deg,arcmin,deg,arcmin,Jy,Jy,deg,arcmin,arcmin \
 	--ra_lims1=0,100 \
 	--dec_lims1=-55,-20 \
 	--prefix1=mwacs \
 	--table2=$PUMA_DIR/original_cats/vizier_nvss.fits \
-	--details2=NVSS,_RAJ2000,e_RAJ2000,_DEJ2000,e_DEJ2000,1400,S1_4,e_S1_4,PA,MajAxis,MinAxis,f_resFlux,Field \
+	--details2=NVSS,_RAJ2000,e_RAJ2000,_DEJ2000,e_DEJ2000,1400,S1_4,e_S1_4,PA,MajAxis,MinAxis,-,- \
 	--units2=deg,sec,deg,arcsec,mJy,mJy,deg,arcsec,arcsec \
 	--ra_lims2=100,200 \
 	--dec_lims2=-40,0 \
@@ -78,7 +78,7 @@ echo $PRINT_4
 ##-------------------------------------------------------------------------------------------------
 calculate_bayes.py --primary_cat=mwacs --matched_cats=vlssr,mrc,sumss,nvss \
 	--primary_freq=180 --matched_freqs=74,408,843,1400 \
-	--out_name=bayes_mwacs-v-m-s-n.txt
+	--out_name=bayes_mwacs-v-m-s-n.txt --resolution=00:03:00
 STRING_5="Time to calculate posterior probabilities: "
 TIME_5=$SECONDS
 ELAPSED_5=$(($TIME_5 - $TIME_4))
