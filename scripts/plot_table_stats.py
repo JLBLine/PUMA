@@ -1,9 +1,9 @@
 #!/usr/bin/python
 from astropy.io.votable import parse as vot_parse
 try:
-	import pyfits as fits
+    import pyfits as fits
 except ImportError:
-	from astropy.io import fits
+    from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -14,32 +14,35 @@ import statsmodels.api as sm
 parser = optparse.OptionParser()
 
 parser.add_option('-t', '--input_table', 
-	help='Enter name of input table')
+    help='Enter name of input table')
+
+parser.add_option('-l', '--lims',default=False, 
+    help='Enter SI limits for output plot - enter as low_SI,high_SI')
 
 options, args = parser.parse_args()
 
 class source_info:
-	def __init__(self):
-		self.SI = None
-		self.intercept = None
-		self.SI_err = None
-		self.intercept_err = None
-		self.num_match = None
-		self.retained_match = None
-		self.type_match = None
-		self.low_resid = None
-		self.num_cats = None
+    def __init__(self):
+        self.SI = None
+        self.intercept = None
+        self.SI_err = None
+        self.intercept_err = None
+        self.num_match = None
+        self.retained_match = None
+        self.type_match = None
+        self.low_resid = None
+        self.num_cats = None
 
 name = options.input_table
 
 if '.vot' in name:
-	table = vot_parse(name,pedantic=False).get_first_table()
-	tdata = table.array
+    table = vot_parse(name,pedantic=False).get_first_table()
+    tdata = table.array
 elif '.fits' or '.FITS' in name:
-	table = fits.open(name,pedantic=False)
-	tdata = table[1].data
+    table = fits.open(name,pedantic=False)
+    tdata = table[1].data
 else:
-	sys.exit('Entered table must either be VOTable or FITS')
+    sys.exit('Entered table must either be VOTable or FITS')
 
 SIs = tdata['SI']
 intercepts = tdata['Intercept']
@@ -55,31 +58,31 @@ chi_reds = tdata['Chi_sq_red']
 low_resids = []
 
 for chi in chi_reds:
-	if chi <= 2.0:
-		low_resids.append(0.0)
-	else:
-		low_resids.append(1.0)
+    if chi <= 2.0:
+        low_resids.append(0.0)
+    else:
+        low_resids.append(1.0)
 
 def make_source(ind):
-	source=source_info()
-	source.SI = SIs[ind]
-	source.intercept = intercepts[ind]
-	#source.SI_err = SI_errs[ind] 
-	#source.intercept_err = intercept_errs[ind]
-	#source.num_match = num_matches[ind]
-	#source.retained_match = retained_matches[ind]
-	source.type_match = type_matches[ind]
-	source.low_resid = low_resids[ind]
-	source.num_cats = num_cats[ind]
-	return source
+    source=source_info()
+    source.SI = SIs[ind]
+    source.intercept = intercepts[ind]
+    #source.SI_err = SI_errs[ind] 
+    #source.intercept_err = intercept_errs[ind]
+    #source.num_match = num_matches[ind]
+    #source.retained_match = retained_matches[ind]
+    source.type_match = type_matches[ind]
+    source.low_resid = low_resids[ind]
+    source.num_cats = num_cats[ind]
+    return source
 
 ##A method to plot the univariate kernal density estimate of a distribution as a filled lineplot
 def plot_by_kde(ax,data,colour,linewidth,label,linestyle):
-	kde = sm.nonparametric.KDEUnivariate(data)
-	kde.fit()
-	ax.fill(kde.support, kde.density,  facecolor=colour, alpha=0.2,edgecolor=colour)
-	ax.plot(kde.support, kde.density, color=colour,linewidth=linewidth,label=label,linestyle=linestyle)
-	
+    kde = sm.nonparametric.KDEUnivariate(data)
+    kde.fit()
+    ax.fill(kde.support, kde.density,  facecolor=colour, alpha=0.2,edgecolor=colour)
+    ax.plot(kde.support, kde.density, color=colour,linewidth=linewidth,label=label,linestyle=linestyle)
+    
 ##Populate all the sources
 sources = []
 for i in xrange(len(SIs)): sources.append(make_source(i))
@@ -140,29 +143,31 @@ if len(split_match)!=0: plot_by_kde(ax4,split_match,colours[3],5.0,'Split match 
 
 ##Tidy up the labels and add legends
 for ax,label in zip([ax1,ax2,ax3,ax4],[r'$(a)$',r'$(b)$',r'$(c)$',r'$(d)$']):
-	ax.set_xlabel('Spectral Index', fontsize=20)
-	ax.set_ylabel('Estimated density', fontsize=20)
-	ax.legend(loc='upper right',prop={'size':18})
-	#ax.axvline(x=-0.8,color='k',linestyle='--')
-	ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=28,
+    ax.set_xlabel('Spectral Index', fontsize=20)
+    ax.set_ylabel('Estimated density', fontsize=20)
+    ax.legend(loc='center left',prop={'size':18})
+    #ax.axvline(x=-0.8,color='k',linestyle='--')
+    ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=28,
         verticalalignment='top')#, bbox=dict(boxstyle='none'))
-	ax.tick_params(labelsize=16)
-	
-	##Make vaguely sensible data boundaries
-	if min(SIs) > -3:
-		x_min = min(SIs)
-	else:
-		x_min = -3.0
-		
-	if max(SIs) < 1.5:
-		x_max = max(SIs)
-	else:
-		x_max = 1.5
-	
-	
-	ax.set_xlim(x_min,x_max)
-	ax.set_ylim(ymin=0)
-	
+    ax.tick_params(labelsize=16)
+    
+    if options.lims == False:
+        ##Make vaguely sensible data boundaries
+        if min(SIs) > -3:
+            x_min = min(SIs)
+        else:
+            x_min = -3.0
+            
+        if max(SIs) < 1.5:
+            x_max = max(SIs)
+        else:
+            x_max = 1.5
+    else:
+        x_min,x_max = map(float,options.lims.split(','))
+    
+    ax.set_xlim(x_min,x_max)
+    ax.set_ylim(ymin=0)
+    
 plt.tight_layout()
 
 fig_hist.savefig("%s_SIdist.png" %name.split('.')[0],bbox_inches='tight')
