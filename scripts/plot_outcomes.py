@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import numpy as np
 import make_table_lib as mkl
 import plot_outcomes_lib as pol
@@ -12,29 +12,29 @@ parser = optparse.OptionParser()
 
 parser.add_option('-p', '--pref_cats',
 	help='Enter names of matched cataloges, in order of preferable position')
-	
+
 parser.add_option('-m', '--matched_cats',
 	help='Enter names of matched cataloges, in order of match')
-	
-parser.add_option('-c', '--cat_freqs', 
+
+parser.add_option('-c', '--cat_freqs',
 	help='Enter number of frequencies in each catalogue')
-	
-parser.add_option('-i', '--input_bayes', 
+
+parser.add_option('-i', '--input_bayes',
 	help='Enter name of input matched bayes')
 
 parser.add_option('-o', '--prob_thresh',
 	help='The lower and upper probability thresholds - separate with a comma')
 
-parser.add_option('-e', '--epsilon_thresh', 
+parser.add_option('-e', '--epsilon_thresh',
 	help='Cut-off threshold for the epsilon residuals')
 
-parser.add_option('-x', '--chi_thresh', 
+parser.add_option('-x', '--chi_thresh',
 	help='Cut-off threshold for the chi squared residuals')
 
-parser.add_option('-r', '--resolution', 
+parser.add_option('-r', '--resolution',
 	help='Resolution of base catalogue in "deg:arcmin:arcsec" ie "00:03:00" for 3arcmins')
 
-parser.add_option('-s', '--split',default=0, 
+parser.add_option('-s', '--split',default=0,
 	help='The resolution ("deg:arcmin:arcsec") over which to split combined sources')
 
 parser.add_option('-z', '--num_combinations', default=0,
@@ -93,13 +93,13 @@ if plot_accept==False and plot_eyeball==False and plot_reject==False:
 	plot_all = True
 else:
 	plot_all = False
-	
+
 if p_position==False and p_spectral==False and p_combine==False and p_split==False:
 	plot_types = False
 else:
 	plot_types = True
-	
-low_prob,high_prob = map(float,options.prob_thresh.split(','))
+
+low_prob,high_prob = list(map(float,options.prob_thresh.split(',')))
 jstat_thresh = float(options.epsilon_thresh)
 chi_thresh = float(options.chi_thresh)
 closeness = mkl.dec_to_deg(options.resolution)/2
@@ -108,7 +108,7 @@ cat_fs = options.cat_freqs.split(',')
 cat_freqs= []
 for fs in cat_fs:
 	split = fs.split('~')
-	split = map(float,split)
+	split = list(map(float,split))
 	cat_freqs.append(split)
 
 matched_cats = options.matched_cats.split(',')
@@ -123,7 +123,7 @@ if options.p_cats == 0:
 	p_cats = matched_cats
 else:
 	p_cats = options.p_cats.split(',')
-	
+
 save_plots = options.write
 ##-----------------------------------------------------------------------------
 ##-----------------------------------------------------------------------------
@@ -151,12 +151,12 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 	##Work out how many cataloges are present
 	present_cats = [cat for cat in src_all.cats if cat!='-100000.0']
 	num_matches = len(set(present_cats))
-	
+
 	##If only select catalogues to be plotted, check for catalogues being present
 	cats_present = 'no'
 	for cat in present_cats:
 		if cat in p_cats: cats_present = 'yes'
-	
+
 	if cats_present == 'yes':
 		##If not querying for a certain object
 		if queries[0] == '0':
@@ -167,7 +167,7 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 						pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 						i+=1
 					else:
-						if num_combs == plot_num_combs: 
+						if num_combs == plot_num_combs:
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 							i+=1
 						else:
@@ -178,7 +178,7 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 							i+=1
 						else:
-							if num_combs == plot_num_combs: 
+							if num_combs == plot_num_combs:
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 								i+=1
 							else:
@@ -191,7 +191,7 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 							pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 							i+=1
 						else:
-							if num_combs == plot_num_combs: 
+							if num_combs == plot_num_combs:
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 								i+=1
 							else:
@@ -202,7 +202,7 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 								pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 								i+=1
 							else:
-								if num_combs == plot_num_combs: 
+								if num_combs == plot_num_combs:
 									pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 									i+=1
 								else:
@@ -214,13 +214,13 @@ def do_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_tes
 				if query in src_all.names:
 					pol.create_plot(comp,accepted_inds,match_crit,dom_crit,comb_crit)
 					i+=1
-				else: 
+				else:
 					pass
 	else:
 		pass
 	return i
-	
-			
+
+
 def plot_accept_type(comp,accepted_inds,match_crit,dom_crit,comb_crit,num_combs,truth_test,src_all,accept_type,i):
 	##If certain types of matches are requested, only plot the correct type of match
 	if plot_types:
@@ -245,22 +245,22 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 	##calculate_resids needs a list of matches - calculate parameters
 	jstat_resids,params,bses,chi_resids = mkl.calculate_resids([match])
 	src_g = mkl.get_srcg(match)
-	
+
 	##Play the prob trick again to work out which match has been accepted
 	match_probs = [float(m.split()[-1]) for m in matches]
 	dom_num = match_probs.index(prob)+1
 	match_crit = "Combination (%d)\npossible\n%s repeated cats" %(dom_num,repeated_cats)
-	
+
 	##Check to see if all matched sources are within the closeness test - create an
 	##error ellipse by combined closeness with base cat error
 	##Need to convert closeness in to an RA offset, due to spherical trigonometry
 	dr=np.pi/180.0
 	delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(src_all.decs[0]*dr)**2)/np.cos(src_all.decs[0]*dr)**2)/dr
-	
+
 	##Make a list of the ras and decs of the sources to distance test
 	ras_test = [ra for ra in src_g.ras if ra!=-100000.0]
 	dec_test = [dec for dec in src_g.decs if dec!=-100000.0]
-	
+
 	small_test = []
 	for ra,dec in zip(ras_test,dec_test):
 		##We set up delta_RA to give us the equivalent offset in RA that corresponds to the
@@ -275,7 +275,7 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 			else:
 				prim_ra -= 360.0
 				ra_dist = ra - prim_ra
-		
+
 		dec_dist = src_all.decs[0] - dec
 		ra_axis = src_all.rerrs[0] + abs(delta_RA)
 		dec_axis = src_all.derrs[0] + closeness
@@ -290,18 +290,18 @@ def single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,num_ma
 			##Otherwise, fails
 			small_test.append('no')
 			#no_names.append(repeat_name)  #Note the name of the sources that are far away
-	
+
 	#Fail the positional test if a source is outside of the resolution plus position error
 	close_test = 'passed'
 	if 'no' in small_test: close_test = 'failed'
-	
+
 	##If prob is higher than threshold, ignore position of sources and accept the match
 	if prob>high_prob:
 		i = plot_accept_type(comp,accepted_inds,match_crit,'N/A','Pos. accepted\nby $P>P_u$',num_matches,plot_accept,src_all,'position',i)
 	else:
 		##look to see if all sources are within the resolution of the
 		##base catalogue or above some probability theshold, if so check with a spec test else reject them
-		if close_test=='passed' or prob>low_prob:  
+		if close_test=='passed' or prob>low_prob:
 			##IF below either threshold, append with the applicable fit label
 			if jstat_resids[0]<=jstat_thresh or chi_resids[0]<=chi_thresh:
 				i = plot_accept_type(comp,accepted_inds,match_crit,'Spec. passed','Accept by spec',num_matches,plot_accept,src_all,'spectral',i)
@@ -316,54 +316,54 @@ def make_plots(comp,i):
 	##entries
 	chunks = comp.split('START_COMP')
 	all_info = chunks[0].split('\n')
-	
+
 	##FOR SOME REASON CAN'T DO BOTH OF THESE LINES IN THE SAME FOR LOOP?!?!?!
-	for entry in all_info:   
+	for entry in all_info:
 		if entry=='': del all_info[all_info.index(entry)]
 	for entry in all_info:
 		if 'START' in entry: del all_info[all_info.index(entry)]
 
 	matches = chunks[1].split('\n')
 	del matches[0],matches[-2:]
-	
+
 	##Put the information for every source in the matched group in one source_group() class
 	##(see apply_criteria_lib for source_group())
 	src_all = mkl.get_allinfo(all_info)
-	
+
 	#print src_all.names[0]
-	
+
 	##This line applies positional criteria, and tells us if a simple one catalogue repeat source, returning
 	##how many combinations are possible and statistics on them
 	repeated_cats,accepted_matches,accepted_inds,accepted_probs,jstats,chi_reds,g_stats = mkl.matches_retained(src_all,matches)
 	match_crit = "%d of %d \ncombinations \npossible \n%s repeated cats" %(len(accepted_matches),len(matches),repeated_cats)
-	
+
 	##If no combinations are possible, reject all info (goes into the eyeball document)
 	if len(accepted_matches)==0:
 		i = plot_accept_type(comp,accepted_inds,match_crit,'Positionally\nimpossible','N/A',len(matches),plot_reject,src_all,'position',i)
-		
+
 	##If just one combo positionally possible, do a single combo check
 	elif len(accepted_matches)==1:
 		i = single_match_test(src_all,comp,accepted_matches,accepted_inds,g_stats,len(matches),repeated_cats,matches,i)
 		##(Any plotting gets done within single_match_test)
-		
+
 	##If more than one combination is positionally possible:
 	else:
 		##Check for a dominant source. The combination must be the only one with high position prob,
 		##all others with low positional proability, and must dominate spectrally
 		num_cat = len(set([cat for cat in src_all.cats if cat!='-100000.0']))
-		
+
 		dom_source = mkl.spec_pos_agree(jstats,chi_reds,accepted_probs,num_cat)
 		src_g = mkl.get_srcg(accepted_matches[0])
-		##If it finds a dominant source, accept it - counts as a spectral match 
+		##If it finds a dominant source, accept it - counts as a spectral match
 		if dom_source!='none':
 			jstat_resids,params,bses,chi_resids = mkl.calculate_resids([accepted_matches[dom_source]])
 			##Find the probs of all the matches, and use the prob of the dom match to see what number match was accepted
 			all_probs = [float(match.split()[-1]) for match in matches]
 			accepted_prob = accepted_probs[dom_source]
 			dom_num = all_probs.index(accepted_prob)
-			
+
 			i = plot_accept_type(comp,accepted_inds,match_crit,'Dom source (%d)' %(dom_num+1),'Accept dom.\nsource',len(matches),plot_accept,src_all,'spectral',i)
-			
+
 		##If nothing dominates, send to check if a combined source works
 		else:
 			comb_crit, comb_source, comb_jstat, comb_chi_red = mkl.combine_flux(src_all,src_g,accepted_inds,'plot=no',len(matches))
@@ -378,8 +378,8 @@ def make_plots(comp,i):
 			else:
 				i = plot_accept_type(comp,accepted_inds,match_crit,'No dom. source',comb_crit,len(matches),plot_eyeball,src_all,accept_type,i)
 	return i
-				
-				
+
+
 ##Open the input text file (output from calculate_bayes.py)
 bayes_comp = open(options.input_bayes).read().split('END_GROUP')
 del bayes_comp[-1]
@@ -392,9 +392,6 @@ if save_plots:
 			if i < plot_lim: i = make_plots(comp,i)
 	except ValueError:
 		for comp in bayes_comp: i = make_plots(comp,0)
-	
+
 else:
 	for comp in bayes_comp: i = make_plots(comp,0)
-	
-
-

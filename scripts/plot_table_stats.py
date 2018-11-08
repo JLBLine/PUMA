@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from astropy.io.votable import parse as vot_parse
 try:
     import pyfits as fits
@@ -13,10 +13,10 @@ import statsmodels.api as sm
 
 parser = optparse.OptionParser()
 
-parser.add_option('-t', '--input_table', 
+parser.add_option('-t', '--input_table',
     help='Enter name of input table')
 
-parser.add_option('-l', '--lims',default=False, 
+parser.add_option('-l', '--lims',default=False,
     help='Enter SI limits for output plot - enter as low_SI,high_SI')
 
 options, args = parser.parse_args()
@@ -53,8 +53,8 @@ num_cats = tdata['Number_cats']
 #retained_matches = tdata['Retained_matches']
 type_matches = tdata['Match_stage']
 chi_reds = tdata['Chi_sq_red']
- 
- 
+
+
 low_resids = []
 
 for chi in chi_reds:
@@ -67,7 +67,7 @@ def make_source(ind):
     source=source_info()
     source.SI = SIs[ind]
     source.intercept = intercepts[ind]
-    #source.SI_err = SI_errs[ind] 
+    #source.SI_err = SI_errs[ind]
     #source.intercept_err = intercept_errs[ind]
     #source.num_match = num_matches[ind]
     #source.retained_match = retained_matches[ind]
@@ -82,10 +82,10 @@ def plot_by_kde(ax,data,colour,linewidth,label,linestyle):
     kde.fit()
     ax.fill(kde.support, kde.density,  facecolor=colour, alpha=0.2,edgecolor=colour)
     ax.plot(kde.support, kde.density, color=colour,linewidth=linewidth,label=label,linestyle=linestyle)
-    
+
 ##Populate all the sources
 sources = []
-for i in xrange(len(SIs)): sources.append(make_source(i))
+for i in np.arange(len(SIs)): sources.append(make_source(i))
 
 ##Plot the SI dist of good vs bad fits-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 from matplotlib import rc
@@ -150,24 +150,24 @@ for ax,label in zip([ax1,ax2,ax3,ax4],[r'$(a)$',r'$(b)$',r'$(c)$',r'$(d)$']):
     ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=28,
         verticalalignment='top')#, bbox=dict(boxstyle='none'))
     ax.tick_params(labelsize=16)
-    
+
     if options.lims == False:
         ##Make vaguely sensible data boundaries
         if min(SIs) > -3:
             x_min = min(SIs)
         else:
             x_min = -3.0
-            
+
         if max(SIs) < 1.5:
             x_max = max(SIs)
         else:
             x_max = 1.5
     else:
-        x_min,x_max = map(float,options.lims.split(','))
-    
+        x_min,x_max = list(map(float,options.lims.split(',')))
+
     ax.set_xlim(x_min,x_max)
     ax.set_ylim(ymin=0)
-    
+
 plt.tight_layout()
 
 fig_hist.savefig("%s_SIdist.png" %name.split('.')[0],bbox_inches='tight')

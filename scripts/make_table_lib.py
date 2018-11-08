@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
@@ -7,7 +7,7 @@ import copy
 
 dr = np.pi/180.0
 
-def dec_to_deg(time): 
+def dec_to_deg(time):
 	'''converts dd:mm:ss.ss in to degrees, must input as a string
 	   returns a float in units of degrees'''
 	negtest=time[0]
@@ -64,7 +64,7 @@ def deg_to_hour(x):    #converts angle in degrees in to hh:mm:ss.ss, must input 
 		return '-%02d:%02d:%08.5f' %(int(hr),int(mins),secs)
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def arcdist(RA1,RA2,Dec1,Dec2):  
+def arcdist(RA1,RA2,Dec1,Dec2):
 	'''Calculates the arcdist between 2 points in deg'''
 	dr = np.pi/180.0
 	in1 = (90.0 - Dec1)*dr
@@ -114,7 +114,7 @@ class source_group:
 		self.TGSS = ''
 		self.inspected = -1
 		self.accept = None
-		
+
 ##Used to store source and group information
 class source_group_sized:
 	def __init__(self,num_srcs):
@@ -147,8 +147,8 @@ def fit_line(x_data,y_data,errors):
 	   returns a data fit statsmodels object and the residuals'''
 	X = np.column_stack((x_data,np.ones(len(x_data))))
 	data_fit = sm.WLS(y_data,X,weights=1/errors**2).fit()
-	bse = data_fit.bse	
-	
+	bse = data_fit.bse
+
 	##Cannot get residuals on data with 2 or less points
 	if len(y_data)<=2:
 		chi_red = 0.0
@@ -161,7 +161,7 @@ def fit_line(x_data,y_data,errors):
 		jstat = np.sum(resids2/np.exp(y_data))/len(y_data)
 		chi_red = data_fit.ssr/(len(y_data)-2)
 	if str(chi_red)=='inf': chi_red = 0.0
-	
+
 	return data_fit,jstat,bse,chi_red
 
 ##IN CASE WE WANT TO FIT A SIMPLE 2ND ORDER POLYNOMIAL AT SOME POINT
@@ -197,28 +197,28 @@ def get_allinfo(all_info):
 		src_all.PAs.append(float(info[-3]))
 		src_all.flags.append(info[-2])
 		src_all.IDs.append(info[-1])
-		
+
 		##If the source only has one frequency. Append as an array
 		##so that all entries to src_all.freqs etc are of the same
 		##type. This deals with cats with multiple freqs, otherwise
 		##the position, name etc will have to be repeated for each
 		##frequency
-		
+
 		if len(info)==14:
-			src_all.freqs.append(np.array([float(info[6])]))          
+			src_all.freqs.append(np.array([float(info[6])]))
 			src_all.fluxs.append(np.array([float(info[7])]))
 			src_all.ferrs.append(np.array([float(info[8])]))
 			#src_all.freqs.append(float(info[6]))  ##Left here in case ever want to append just the freq, not
 			#src_all.fluxs.append(float(info[7]))  ##an array
 			#src_all.ferrs.append(float(info[8]))
-			
+
 		##If not, work out how many freqs there are and append to lists
 		else:
 			extra = (len(info)-14) / 3
 			freqs = []
 			fluxs = []
 			ferrs = []
-			for i in xrange(extra+1):
+			for i in np.arange(extra+1):
 				##Test to see if flux is a nan or -100000.0; make sure all flux/freq info is -100000.0 if so
 				if np.isnan(float(info[7+(3*i)])) == False or float(info[7+(3*i)]) != -100000.0:
 					freqs.append(float(info[6+(3*i)]))
@@ -235,7 +235,7 @@ def get_allinfo(all_info):
 				#src_all.fluxs.append(float(info[7+(3*i)]))
 				#src_all.ferrs.append(float(info[8+(3*i)]))
 	return src_all
-	
+
 def get_srcg(info):
 	'''Takes a string which contains the information for all sources in particular combination
 	Uses num_freqs to work out where each piece of information is, and then return the relevant
@@ -245,18 +245,18 @@ def get_srcg(info):
 	##to work out how many entries each catalogue will have
 	indexes = [(14+((i-1)*3)) for i in num_freqs]
 	starts = [0]
-	for i in xrange(len(indexes)-1): starts.append(sum(indexes[:i+1]))
+	for i in np.arange(len(indexes)-1): starts.append(sum(indexes[:i+1]))
 	#all_freqs = []
 	#all_fluxs = []
 	#all_ferrs = []
-	for j in xrange(len(starts)): 
+	for j in np.arange(len(starts)):
 		num_freq = num_freqs[j]
 		ind = starts[j]
 		#cat = info[ind]
 		freqss = []
 		fluxss = []
 		ferrss = []
-		for k in xrange(num_freq):
+		for k in np.arange(num_freq):
 			##Test to see if flux is a nan or -100000.0; make sure all flux/freq info is -100000.0 if so
 			if np.isnan(float(info[7+ind+(3*k)])) == False or float(info[7+(3*i)]) != -100000.0:
 				freqss.append(float(info[6+ind+(3*k)]))
@@ -286,7 +286,7 @@ def get_srcg(info):
 		src_g.prob = float(info[-1])
 	return src_g
 ##-------------------------------------------------------------------------------------------------------------
-	
+
 def calculate_resids(matches):
 	'''Takes a list that includes lists of matched source information. Extracts the spectral
 	data for each match and fits a line to it. Returns a list of the residuals'''
@@ -298,24 +298,24 @@ def calculate_resids(matches):
 	##need to append frequencies etc as lists within lists
 	indexes = [(14+((i-1)*3)) for i in num_freqs]
 	starts = [0]
-	for i in xrange(len(indexes)-1): starts.append(sum(indexes[:i+1]))
-	
+	for i in np.arange(len(indexes)-1): starts.append(sum(indexes[:i+1]))
+
 	for info in matches:
 		freqs = []
 		fluxs = []
 		ferrs = []
 		##For each frequency in each catalogue, see if there is an flux and append if there
-		for j in xrange(len(starts)): 
+		for j in np.arange(len(starts)):
 			num_freq = num_freqs[j]
 			ind = starts[j]
 			cat = info[ind]
 			if cat!='-100000.0':
-				for k in xrange(num_freq):
+				for k in np.arange(num_freq):
 					if info[7+ind+(3*k)]!='-100000.0' and np.isnan(float(info[7+ind+(3*k)])) == False:
 						freqs.append(float(info[6+ind+(3*k)]))
 						fluxs.append(float(info[7+ind+(3*k)]))
 						ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
-					
+
 		log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
 		sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
 		log_freqs = np.log(sorted(freqs))
@@ -327,32 +327,32 @@ def calculate_resids(matches):
 		params.append(data_fit.params)
 		bses.append(bse)
 		chi_resids.append(chi_red)
-		
+
 	return jstat_resids,params,bses,chi_resids
 
 def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	'''Takes a src_group() class that contains all group info. Indentifies which catalogue is repeated, combines
-	the fluxes and fits a new line. Returns the reduced frequency list, the combined flux and flux error 
+	the fluxes and fits a new line. Returns the reduced frequency list, the combined flux and flux error
 	arrays, as well as the line_fit object and residuals'''
 	##Find cat names of all accepted sources
 	accept_cat_names = [src_all.cats[i] for i in accepted_inds]
-	
+
 	##Find repeated catalogues within the accepted sources
 	repeated_cats = set([cat for cat in accept_cat_names if accept_cat_names.count(cat) > 1])
-	
+
 	##This won't neccesarily be in the that the cats appear in src_all.cats so reorder
 	repeat_indexs = [src_all.cats.index(cat) for cat in repeated_cats]
 	repeated_cats = [cat for ind,cat in sorted(zip(repeat_indexs,repeated_cats),key=lambda pair: pair[0])]
-	
+
 	##These are used to test the combined spectrum
-	temp_freqs = [src_all.freqs[i] for i in xrange(len(src_all.freqs)) if src_all.cats[i] not in repeated_cats]
-	temp_fluxs = [src_all.fluxs[i] for i in xrange(len(src_all.fluxs)) if src_all.cats[i] not in repeated_cats]
-	temp_ferrs = [src_all.ferrs[i] for i in xrange(len(src_all.ferrs)) if src_all.cats[i] not in repeated_cats]
-	
+	temp_freqs = [src_all.freqs[i] for i in np.arange(len(src_all.freqs)) if src_all.cats[i] not in repeated_cats]
+	temp_fluxs = [src_all.fluxs[i] for i in np.arange(len(src_all.fluxs)) if src_all.cats[i] not in repeated_cats]
+	temp_ferrs = [src_all.ferrs[i] for i in np.arange(len(src_all.ferrs)) if src_all.cats[i] not in repeated_cats]
+
 	#print temp_freqs
 	#print temp_fluxs
 	#print temp_ferrs
-	
+
 	##Will need these for fitting/passing on to plotting function
 	comb_freqs = []
 	comb_fluxs = []
@@ -361,54 +361,54 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	dec_ws = []
 	rerr_ws = []
 	derr_ws = []
-	
+
 	##Need these in case of doing the split test
 	resolved_diff_inds = []
 	unrepeat_dists = []
 	num_of_repeats = []
-	
+
 	for repeat_cat in repeated_cats:
-		num_of_repeat = [i for i in xrange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		num_of_repeat = [i for i in np.arange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		num_of_repeats.append(num_of_repeat)
-	
+
 	#print src_all.cats
 	#print repeated_cats
 	##For each repeated catalogue:
 	for repeat_cat in repeated_cats:
 		##Find the frequency/ies of repeated cat
 		comb_freq = src_all.freqs[src_all.cats.index(repeat_cat)]
-		
+
 		##Find the flux/es of the repeat_cat sources that were accepted by retained_sources()
-		flux_to_comb = [src_all.fluxs[i] for i in xrange(len(src_all.fluxs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		flux_to_comb = [src_all.fluxs[i] for i in np.arange(len(src_all.fluxs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		##Find the flux error/s of the repeat_cat sources that were accepted by retained_sources()
-		ferr_to_comb = [src_all.ferrs[i] for i in xrange(len(src_all.ferrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
-		
+		ferr_to_comb = [src_all.ferrs[i] for i in np.arange(len(src_all.ferrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+
 		##ALso find all of the positional information to combine
-		ras_to_comb = [src_all.ras[i] for i in xrange(len(src_all.ras)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
-		rerrs_to_comb = [src_all.rerrs[i] for i in xrange(len(src_all.rerrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
-		decs_to_comb = [src_all.decs[i] for i in xrange(len(src_all.decs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
-		derrs_to_comb = [src_all.derrs[i] for i in xrange(len(src_all.derrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
-		
+		ras_to_comb = [src_all.ras[i] for i in np.arange(len(src_all.ras)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		rerrs_to_comb = [src_all.rerrs[i] for i in np.arange(len(src_all.rerrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		decs_to_comb = [src_all.decs[i] for i in np.arange(len(src_all.decs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		derrs_to_comb = [src_all.derrs[i] for i in np.arange(len(src_all.derrs)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+
 		##This is to write down all the names of the sources combined
-		names_to_comb = [src_all.names[i] for i in xrange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
+		names_to_comb = [src_all.names[i] for i in np.arange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		name_string = ''
 		for name in names_to_comb: name_string += ','+name
-		
+
 		src_g.matched_names.append((repeat_cat,name_string[1:]))
-		
+
 		##TEST TO SEE IF THE REPEATED SOURCES ARE RESOLVED (BY A GIVEN RESOLUTION THRESHOLD)
 		##Need to do the split test here even if not propagating to the final catalogue
 		##-------------------------------------------------------------------------------------------------------
-		
+
 		##Give it a value even if not splitting
 		if split==0:
 			dist_test = 0.020833333 ##1.25 arcmin
 		else:
 			dist_test = dec_to_deg(split)
 		big_inds = []
-		
+
 		n = len(ras_to_comb)
-		
+
 		for i in range(0,n+1):
 			for j in range(i+1,n):
 				dist = arcdist(ras_to_comb[i],ras_to_comb[j],decs_to_comb[i],decs_to_comb[j])
@@ -416,17 +416,17 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 					big_inds.append([i,j])
 		resolved_diff_inds.append(big_inds)
 		##-------------------------------------------------------------------------------------------------------
-		
+
 		##TODO If the repeated source catalogue has more than one frequency, but one of these
 		##sources has no flux measurement at that frequency, we will have nan issues. May need to
 		##flag all fluxes at a given frequency if one of the sources is missing a flux
 		#Make a list of fluxes to flag or summin? flag_comb = []
-		
+
 		##flux_to_comb is a list containing arrays, want to sum
 		##the flux at every frequency
 		comb_flux = flux_to_comb[0] + flux_to_comb[1]
 		for c_flux in flux_to_comb[2:]: comb_flux += c_flux
-		
+
 		#print flux_to_comb
 
 		##Add the flux error in quadrature
@@ -442,7 +442,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		comb_freqs.append(comb_freq)
 		comb_fluxs.append(comb_flux)
 		comb_ferrs.append(comb_ferr)
-		
+
 		##Weight by the first flux in the flux list (in case catalogue has multiple frequencies)
 		flux_s = [flux[0] for flux in flux_to_comb]
 
@@ -454,32 +454,32 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 			if abs(diff)>180.0:
 				wrap='yes'
 		if wrap=='yes':
-			for i in xrange(len(ras_to_comb)):
+			for i in np.arange(len(ras_to_comb)):
 				if ras_to_comb[i]<180.0:
 					ras_to_comb[i]+=360.0
 		##Weight the sources by their flux
 		weights = [flux/sum(flux_s) for flux in flux_s]
 
-		##Do the weighting, if weighted RA is above 360 deg, rescale, 
+		##Do the weighting, if weighted RA is above 360 deg, rescale,
 		##add the errors as shown in the write up
 		ra_w = np.dot(ras_to_comb,weights)
 		if ra_w>360.0: ra_w-=360.0
 		dec_w = np.dot(decs_to_comb,weights)
 		rerr_w = (np.dot(rerrs_to_comb,weights)**2)**0.5
 		derr_w = (np.dot(derrs_to_comb,weights)**2)**0.5
-		
+
 		ra_ws.append(ra_w)
 		dec_ws.append(dec_w)
 		rerr_ws.append(rerr_w)
 		derr_ws.append(derr_w)
-	
-	
+
+
 	##Flag distance between repeated cats as being larger than designated resolution
-	big_flags = [0 for i in xrange(len(resolved_diff_inds))]
-	for i in xrange(len(resolved_diff_inds)):
-		if len(resolved_diff_inds[i])>0: big_flags[i] = 1 
+	big_flags = [0 for i in np.arange(len(resolved_diff_inds))]
+	for i in np.arange(len(resolved_diff_inds)):
+		if len(resolved_diff_inds[i])>0: big_flags[i] = 1
 	##Now each repeat_cat has a 1 flag if large separation, 0 if not
-	
+
 	set_freqs = []
 	set_fluxs = []
 	set_ferrs = []
@@ -522,25 +522,25 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 					set_ferrs.append(ferrs)
 					set_names.append(names)
 					set_cats.append(cats)
-					
-				flux_to_weight = [src_all.fluxs[i][0] for i in xrange(len(src_all.fluxs)) if (src_all.cats[i] not in repeated_cats)]
-				freq_to_weight = [src_all.freqs[i][0] for i in xrange(len(src_all.freqs)) if (src_all.cats[i] not in repeated_cats)]
-				ferr_to_weight = [src_all.ferrs[i][0] for i in xrange(len(src_all.ferrs)) if (src_all.cats[i] not in repeated_cats)]
-				cats_to_weight = [src_all.cats[i] for i in xrange(len(src_all.cats)) if (src_all.cats[i] not in repeated_cats)]
-				names_to_weight = [src_all.names[i] for i in xrange(len(src_all.names)) if (src_all.cats[i] not in repeated_cats)]
-				
+
+				flux_to_weight = [src_all.fluxs[i][0] for i in np.arange(len(src_all.fluxs)) if (src_all.cats[i] not in repeated_cats)]
+				freq_to_weight = [src_all.freqs[i][0] for i in np.arange(len(src_all.freqs)) if (src_all.cats[i] not in repeated_cats)]
+				ferr_to_weight = [src_all.ferrs[i][0] for i in np.arange(len(src_all.ferrs)) if (src_all.cats[i] not in repeated_cats)]
+				cats_to_weight = [src_all.cats[i] for i in np.arange(len(src_all.cats)) if (src_all.cats[i] not in repeated_cats)]
+				names_to_weight = [src_all.names[i] for i in np.arange(len(src_all.names)) if (src_all.cats[i] not in repeated_cats)]
+
 				##Find all the fluxs of the repeated cats, come up with weights for the single sources based on each
 				##individual repeated catalogue, then take an average of these weights
-				fluxs_for_weights = [[src_all.fluxs[sset[src]][0] for sset in sets] for src in xrange(len(sets[0]))]
+				fluxs_for_weights = [[src_all.fluxs[sset[src]][0] for sset in sets] for src in np.arange(len(sets[0]))]
 				fluxs_weights = [[flux/sum(fluxs) for flux in fluxs] for fluxs in fluxs_for_weights]
-				flux_weights = np.array([np.mean([[weights[weight]] for weights in fluxs_weights]) for weight in xrange(len(fluxs_weights[0]))])
-				
+				flux_weights = np.array([np.mean([[weights[weight]] for weights in fluxs_weights]) for weight in np.arange(len(fluxs_weights[0]))])
+
 				##For each set of freq,fluxs in the new set matched, append the weighted freq, flux and ferr of the
 				##sources that have been split up
-				for i in xrange(len(set_freqs)):
+				for i in np.arange(len(set_freqs)):
 					weighted_fluxs = np.array(flux_to_weight)*flux_weights[i]
 					weighted_errs = np.array(ferr_to_weight)*flux_weights[i]
-					for j in xrange(len(weighted_fluxs)):
+					for j in np.arange(len(weighted_fluxs)):
 						set_freqs[i].append(freq_to_weight[j])
 						set_fluxs[i].append(weighted_fluxs[j])
 						set_ferrs[i].append(weighted_errs[j])
@@ -554,7 +554,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				set_names = [[name for name,freq in sorted(zip(names,freqs), key=lambda pair: pair[1]) ] for names,freqs in zip(set_names,set_freqs)]
 				set_freqs = [sorted(freq) for freq in set_freqs]
 
-			for i in xrange(len(set_fluxs)):
+			for i in np.arange(len(set_fluxs)):
 				freqs = set_freqs[i]
 				fluxs = set_fluxs[i]
 				ferrs = set_ferrs[i]
@@ -566,24 +566,24 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	log_temp_freqs = []
 	log_temp_fluxs = []
 	log_temp_ferrs = []
-	
+
 	##Get the sources out of the array in list format (which is used later when making the sources
 	##to add to the final table)
-	
-	for i in xrange(len(temp_freqs)):
-		for j in xrange(len(temp_freqs[i])):
+
+	for i in np.arange(len(temp_freqs)):
+		for j in np.arange(len(temp_freqs[i])):
 			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
 				pass
 			else:
 				log_temp_freqs.append(np.log(temp_freqs[i][j]))
-	for i in xrange(len(temp_freqs)):
-		for j in xrange(len(temp_freqs[i])):
+	for i in np.arange(len(temp_freqs)):
+		for j in np.arange(len(temp_freqs[i])):
 			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
 				pass
 			else:
 				log_temp_fluxs.append(np.log(temp_fluxs[i][j]))
-	for i in xrange(len(temp_freqs)):
-		for j in xrange(len(temp_freqs[i])):
+	for i in np.arange(len(temp_freqs)):
+		for j in np.arange(len(temp_freqs[i])):
 			if temp_fluxs[i][j] == -100000.0 or np.isnan(temp_fluxs[i][j])==True:
 				pass
 			else:
@@ -591,10 +591,10 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 
 	##Fit and find residuals to the combined spectrum
 	comb_fit,comb_jstat,comb_bse,comb_chi_red = fit_line(np.array(log_temp_freqs),np.array(log_temp_fluxs),np.array(log_temp_ferrs))
-	
+
 	##Find out where in srg_g the repeated cats appear
 	repeat_cat_inds = [src_g.cats.index(cat) for cat in repeated_cats]
-	
+
 	split_flag=''
 	##Make labels for when we're plotting a put in combined_names
 	combined_names = []
@@ -602,7 +602,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		##Create the combined source no matter what for plotting purposes
 		##Loop over all the combined sources and repopulate the entries of a src_g
 		##at the point where the repeated catalogues appear
-		for i in xrange(len(comb_fluxs)):
+		for i in np.arange(len(comb_fluxs)):
 			srcg_ind = repeat_cat_inds[i]
 			src_g.ras[srcg_ind] = ra_ws[i]
 			src_g.rerrs[srcg_ind] = rerr_ws[i]
@@ -622,15 +622,15 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		src_g.intercept_err = comb_bse[1]
 		src_g.chi_resid = comb_chi_red
 		src_g.epsilon_red = comb_jstat
-	
+
 		##If good fit, report that in the final stats object
 		if comb_chi_red<=2:
 			src_g.low_resids = 0
 		else:
 			src_g.low_resids = 1
-			
+
 		dom_crit = 'Accepted -\ncombined'
-		
+
 		if split != 0:
 			##If a split source, create however many new sources are needed
 			if big_sep=='yes':
@@ -648,15 +648,15 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				else:
 					dom_crit = 'Accepted -\nsplit'
 					split_sources = []
-					for set_ind,resids in zip(xrange(len(set_cats)),zip(set_red,set_jstat)):
+					for set_ind,resids in zip(np.arange(len(set_cats)),zip(set_red,set_jstat)):
 						chi_resid,eps_red = resids
 						new_g = copy.deepcopy(src_g)
 						##We need to put the sources in the same order as the src_g, so it gets
 						##put in to the final table in the right order. The position info for
-						##everything is in the src_all info, and the order of the sources is in 
+						##everything is in the src_all info, and the order of the sources is in
 						##the src_g. There are also blank entries in src_g, so just make a copy
 						##and insert the correct sources in to it.
-						for src in xrange(len(set_cats[set_ind])):
+						for src in np.arange(len(set_cats[set_ind])):
 							order_ind = src_g.cats.index(set_cats[set_ind][src])
 							info_ind = src_all.names.index(set_names[set_ind][src])
 							new_g.freqs[order_ind] = np.array([set_freqs[set_ind][src]])
@@ -677,7 +677,7 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 							new_g.chi_resid = chi_resid
 							new_g.epsilon_red = eps_red
 						split_sources.append(new_g)
-			
+
 		##If plotting need a bunch specific info
 		if plot=='plot=yes':
 			##Get the freqs, fluxes and ferrs out of array for and in to a simple list to be plotted
@@ -703,17 +703,17 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 				else:
 					##Return all of the components
 					return dom_crit, split_sources, comb_jstat, comb_chi_red
-	
+
 	##If it fails, still return all the info to the plot so we can see what's going on
 	else:
 		if split==False:
 			big_sep='no'
-		
+
 		if big_sep=='yes':
 			dom_crit = 'To eyeball\n(split?)'
 		else:
 			dom_crit = 'To eyeball'
-		
+
 		if plot=='plot=yes':
 			comb_freqs_sing = []
 			comb_fluxs_sing = []
@@ -727,11 +727,11 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 			return dom_crit, ra_ws, rerr_ws, dec_ws, derr_ws, np.exp(log_temp_freqs), comb_freqs_sing, comb_fluxs_sing, comb_ferrs_sing, comb_fit, comb_jstat, comb_chi_red, comb_bse, ["(combined-%s)" %cat for cat in repeated_cats], set_freqs ,set_fluxs, set_fits, set_bse
 		else:
 			return dom_crit, 'nyope', comb_jstat, comb_chi_red
-			
+
 def spec_pos_agree(jstats,chi_resids,pos_probs,num_cat):
 	dom_source = 'none'
 	spec_dom = 'none'
-	
+
 	##Sometimes get numerical errors so that residuals of two catalogue matches are > 0, so skip if
 	##only two catalogues presents
 	if num_cat==2:
@@ -751,18 +751,18 @@ def spec_pos_agree(jstats,chi_resids,pos_probs,num_cat):
 				if len(chi_test)!=0:
 					if max(chi_test)<=0.33:
 						spec_dom = chi_resids.index(chi_red)
-	
+
 	##Work out if just one prob > high threshold, and all others < low threshold
 	higher_probs = [prob for prob in pos_probs if prob>low_prob]
 	prob_dom = 'none'
 	if len(higher_probs)==1 and higher_probs[0]>high_prob: prob_dom = pos_probs.index(higher_probs[0])
-	
+
 	##See if prob dom and spec dom are the same source, if so make most likely
 	if spec_dom == prob_dom: dom_source = spec_dom
-	
+
 	if num_cat==2:
 		if spec_dom != 'none':
-			print jstats,chi_resids
+			print(jstats,chi_resids)
 
 	return dom_source
 
@@ -777,20 +777,20 @@ class group_stats:
 		self.num_low_prob = None
 		self.outcome = None
 		self.num_cats = None
-		
-	
+
+
 def matches_retained(src_all,matches):
 	##COMPARE COMBINED RESIDS TO SING RESIDS??
 	'''Return matches that pass positional criteria, ie either
 	within closeness test of base cat OR prob > prob threshold'''
 	g_stats = group_stats()
 	g_stats.num_matches = len(matches)
-	
+
 	cats = src_all.cats
 	##Find number of repeated catalogues
 	num_repeated_cats = len(set([cat for cat in cats if cats.count(cat)>1]))
 	##Find index of every source from any catalogue with more than one source matched
-	repeated_inds = [i for i in xrange(len(cats)) if cats.count(cats[i])>1]
+	repeated_inds = [i for i in np.arange(len(cats)) if cats.count(cats[i])>1]
 	##TODO: This is only testing the repeated catalogues - sometimes the single source
 	##matched catalogues are outside resolution, and ruin all cross matching.
 	small_test = []
@@ -799,14 +799,14 @@ def matches_retained(src_all,matches):
 	for ind in repeated_inds:
 		repeat_name = src_all.names[ind]
 		repeat_names.append(repeat_name)
-		
-		##Get the positional offset of each repeated source from src_all - 
+
+		##Get the positional offset of each repeated source from src_all -
 		##need to convert closeness in to an RA offset, due to spherical trigonometry
 		delta_RA = np.arccos((np.cos(closeness*dr)-np.sin(src_all.decs[0]*dr)**2)/np.cos(src_all.decs[0]*dr)**2)/dr
-		
+
 		##We set up delta_RA to give us the equivalent offset in RA that corresponds to the
 		##resolution, so we use the offset in RA, not the arcdistance
-		
+
 		prim_ra = src_all.ras[0]
 		ra = src_all.ras[ind]
 		ra_dist = ra - prim_ra
@@ -832,7 +832,7 @@ def matches_retained(src_all,matches):
 			##Otherwise, fails
 			small_test.append('no')
 			no_names.append(repeat_name)  #Note the name of the sources that are far away
-	
+
 	probs_test = []
 	probs_values = []
 	for match in matches:
@@ -845,7 +845,7 @@ def matches_retained(src_all,matches):
 			probs_test.append('no')
 		else:
 			probs_test.append('yes')
-			
+
 	##If the source passes either of the tests, we accept it
 	accepted_matches = []
 	accepted_inds = []
@@ -861,24 +861,24 @@ def matches_retained(src_all,matches):
 
 	##Find the indexes of the repeated sources in the src_all class, that pass the closeness test
 	##or are involved in a probable combination
-	for ind in xrange(len(repeated_inds)):
+	for ind in np.arange(len(repeated_inds)):
 		if small_test[ind]=='yes': accepted_inds.append(repeated_inds[ind])
-		
+
 	for match in accepted_matches:
 		for name in repeat_names:
 			name_ind = repeated_inds[repeat_names.index(name)]
 			if (name in match) and (name_ind not in accepted_inds): accepted_inds.append(name_ind)
-			
+
 	accepted_inds = list(np.sort(accepted_inds))
-	
+
 	##Here, fill in some stats so we can see what kinds of matches we are accecpting or rejecting
 	g_stats.retained_matches = len(accepted_matches)
-	g_stats.num_high_prob = len([prob for prob in probs_values if probs_values>high_prob])
-	g_stats.num_high_prob = len([prob for prob in probs_values if probs_values<low_prob])
+	g_stats.num_high_prob = len([prob for prob in probs_values if prob > high_prob])
+	g_stats.num_high_prob = len([prob for prob in probs_values if prob < low_prob])
 	g_stats.num_close = len([test for test in probs_test if test=='yes'])
-	
+
 	##Calculate the residuals of each accepted match. We have alread .split()
 	##each match, so no need to do again when entering into calculate_resids
 	jstats,params,bses,chi_reds = calculate_resids(accepted_matches)
-	
+
 	return num_repeated_cats,accepted_matches,accepted_inds,accepted_probs,jstats,chi_reds,g_stats
