@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from numpy import array,arange,sin,cos,pi,empty,where,ma
+from numpy import array,arange,sin,cos,pi,empty,where,ma,where,isnan
 import subprocess
 import optparse
 import os
@@ -101,6 +101,8 @@ def get_units(data,detail,unit,unit_type,entries):
 				column = data[detail]/1000.0
 			else:
 				print('PUMA flux conversion error: you entered \nMust enter eith Jy or mJy as units \nNow exiting' %unit)
+
+	column[where(isnan(column) == True)] = -100000.0
 	return column
 
 def get_units_blanks(data,detail,unit,unit_type,entries):
@@ -139,7 +141,7 @@ def get_units_blanks(data,detail,unit,unit_type,entries):
 						sys.exit()
 			except ValueError:
 				column[i]=-100000.0
-
+		column[where(isnan(column) == True)] = -100000.0
 		return column
 
 def get_lune(ra1,ra2,dec1,dec2):

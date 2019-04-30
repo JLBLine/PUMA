@@ -267,9 +267,15 @@ def fill_left_plots(all_info,ra_main,dec_main,ax_main,ax_spectral,tr_fk5,wcs,all
                 transform=tr_fk5,linestyle='dashdot',fc='none',lw=1.1,color='k')
             ax_main.add_patch(ell)
 
+        ##Just in case bad errors slipped through somehow
+        if rerr < 0:
+            rerr = 0.0
+        if derr < 0:
+            derr = 0.0
         ##Plot positions and elliptical fits
         plot_all(cat,name,ra,rerr,dec,derr,major,minor,PA,ax_main,tr_fk5)
 
+        # print(cat,ra,rerr,dec,derr)
         ##See if one or more flux for a source, and plot fluxes with errorbars
         cat_ind = matched_cats.index(cat)
         if len(info)==14:

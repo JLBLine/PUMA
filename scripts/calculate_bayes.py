@@ -191,13 +191,40 @@ for cat_data,skip in zip(table_data,skip_rows):
 	##If any of the errors are negative or zero, the whole match stops and fails -
 	##take an average of rerr, derr and ferr here, and subsitute that in later if
 	##needs be
-	base_rerr_avg = np.mean(data['%s_e_RAJ2000' %primary_cat])
-	base_derr_avg = np.mean(data['%s_e_DEJ2000' %primary_cat])
-	base_ferr_avg = np.mean(data['%s_e_S%d' %(primary_cat,float(primary_freqs[0]))])
 
-	cat_rerr_avg = np.mean(data['%s_e_RAJ2000' %cat])
-	cat_derr_avg = np.mean(data['%s_e_DEJ2000' %cat])
-	cat_ferr_avg = np.mean(data['%s_e_S%d' %(cat,float(matched_freqs[matched_cats.index(cat)].split('~')[0]))])
+	base_rerr = data['%s_e_RAJ2000' %primary_cat]
+	base_derr = data['%s_e_DEJ2000' %primary_cat]
+	base_ferr = data['%s_e_S%d' %(primary_cat,float(primary_freqs[0]))]
+
+	cat_rerr = data['%s_e_RAJ2000' %cat]
+	cat_derr = data['%s_e_DEJ2000' %cat]
+	cat_ferr = data['%s_e_S%d' %(cat,float(matched_freqs[matched_cats.index(cat)].split('~')[0]))]
+
+
+	bad_base_rerr = np.where(base_rerr <= 0)
+	bad_base_derr = np.where(base_derr <= 0)
+	bad_base_ferr = np.where(base_ferr <= 0)
+
+	bad_cat_rerr = np.where(cat_rerr <= 0)
+	bad_cat_derr = np.where(cat_derr <= 0)
+	bad_cat_ferr = np.where(cat_ferr <= 0)
+
+	base_rerr_avg = np.nanmedian(base_rerr[base_rerr > 0])
+	base_derr_avg = np.nanmedian(base_derr[base_derr > 0])
+
+	cat_rerr_avg = np.nanmedian(cat_rerr[cat_rerr > 0])
+	cat_derr_avg = np.nanmedian(cat_derr[cat_derr > 0])
+
+	if len(bad_base_rerr[0]) > 1 or len(bad_base_derr[0]) > 1 or len(bad_base_ferr[0]) > 1:
+		print('There are either negative or missing errors in %s ' %primary_cat)
+		print('Will use median RA/DEC errors of %.1f %.1f arcsec' %(base_rerr_avg*3600.0,base_derr_avg*3600.0))
+		print('Will use 20% of flux value as error on flux')
+
+	if len(bad_cat_rerr[0]) > 1 or len(bad_cat_derr[0]) > 1 or len(bad_cat_ferr[0]) > 1:
+		print('There are either negative or missing errors in %s ' %primary_cat)
+		print('Will use median RA/DEC errors of %.1f %.1f arcsec' %(base_rerr_avg*3600.0,base_derr_avg*3600.0))
+		print('Will use 20% of flux value as error on flux')
+
 	##(For all rows of data)
 	for s_row in np.arange(rows):
 		##If in the skip list, it's a repeated source, so don't add it to the matched data
@@ -215,12 +242,12 @@ for cat_data,skip in zip(table_data,skip_rows):
 
 				##Test the errors for zero or neg values,
 				##and insert a proxy error if so
-				if float(row[2])<=0.0:
+				if float(row[2])<=0.0 or np.isnan(float(row[2])) == True:
 					src.rerrs.append(str(base_rerr_avg))
 				else:
 					src.rerrs.append(str(row[2]))
 
-				if float(row[4])<=0.0:
+				if float(row[4])<=0.0 or np.isnan(float(row[4])) == True:
 					src.derrs.append(str(base_derr_avg))
 				else:
 					src.derrs.append(str(row[4]))
@@ -249,15 +276,15 @@ for cat_data,skip in zip(table_data,skip_rows):
 					ferrss = []
 					freqss.append(str(primary_freqs[0]))
 					fluxss.append(str(row[5]))
-					if -100000.0<float(row[6])<=0.0:
-						ferrss.append(str(cat_ferr_avg))
+					if float(row[6])<=0.0:
+						ferrss.append(str(row[5]*0.2))
 					else:
 						ferrss.append(str(row[6]))
 					for i in np.arange(len(primary_freqs)-1):
 						freqss.append(str(primary_freqs[i+1]))
 						fluxss.append(str(row[12+(2*i)]))
-						if -100000.0<float(row[13+(2*i)])<=0.0:
-							ferrss.append(str(base_ferr_avg))
+						if float(row[13+(2*i)])<=0.0:
+							ferrss.append(str(row[12+(2*i)]*0.2))
 						else:
 							ferrss.append(str(row[13+(2*i)]))
 
@@ -267,8 +294,8 @@ for cat_data,skip in zip(table_data,skip_rows):
 				else:
 					src.freqs.append(primary_freqs[0])
 					src.fluxs.append(str(row[5]))
-					if -100000.0<float(row[6])<=0.0:
-						src.ferrs.append(str(base_ferr_avg))
+					if float(row[6])<=0.0:
+						src.ferrs.append(str(row[5]*0.2))
 					else:
 						src.ferrs.append(str(row[6]))
 				#source_matches.append(src)
@@ -594,9 +621,12 @@ def do_bayesian(sources):
 	prior *= ((sky_area / 4*np.pi)**(1 - len(source_nums)))
 
 	##Calculate posterior
-	#posterior = (bayes_factor*prior)/(1+(bayes_factor*prior))   ##The approximation to the posterior in the lims of small priors -
-	##uncomment if you want to get rid of divide by zero messages (possibly less accurate though)
-	posterior = (1 + ((1 - prior)/(bayes_factor*prior)))**-1
+	#posterior = (bayes_factor*prior)/(1+(bayes_factor*prior))
+	##The approximation to the posterior in the lims of small priors -
+	##uncomment if you don't want to ignore the divide by zero messages (possibly less accurate though)
+
+	with np.errstate(divide='ignore'):
+		posterior = (1 + ((1 - prior)/(bayes_factor*prior)))**-1
 
 	return prior, bayes_factor, posterior
 
