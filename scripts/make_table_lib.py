@@ -316,12 +316,11 @@ def calculate_resids(matches):
 						fluxs.append(float(info[7+ind+(3*k)]))
 						ferrs.append(float(info[8+ind+(3*k)])/float(info[7+ind+(3*k)]))
 
-		log_fluxs = np.log([flux for (freq,flux) in sorted(zip(freqs,fluxs),key=lambda pair: pair[0])])
-		sorted_ferrs = np.array([ferr for (freq,ferr) in sorted(zip(freqs,ferrs),key=lambda pair: pair[0])])
-		log_freqs = np.log(sorted(freqs))
-		#prior = info[-2]
-		#prob = info[-1]
-		#bayes = info[-3]
+		indexes = np.argsort(freqs)
+		log_fluxs = np.log(fluxs)[indexes]
+		sorted_ferrs = np.array(ferrs)[indexes]
+		log_freqs = np.log(freqs)[indexes]
+
 		data_fit,jstat,bse,chi_red = fit_line(log_freqs,log_fluxs,sorted_ferrs)
 		jstat_resids.append(jstat)
 		params.append(data_fit.params)
@@ -547,12 +546,25 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 						set_cats[i].append(cats_to_weight[j])
 						set_names[i].append(names_to_weight[j])
 
-				##For every set of frequencies, ferrs, names and fluxes in the set, order the fluxes, names and ferrs by the frequencies
-				set_fluxs = [[flux for flux,freq in sorted(zip(fluxs,freqs), key=lambda pair: pair[1]) ] for fluxs,freqs in zip(set_fluxs,set_freqs)]
-				set_ferrs = [[ferr for ferr,freq in sorted(zip(ferrs,freqs), key=lambda pair: pair[1]) ] for ferrs,freqs in zip(set_ferrs,set_freqs)]
-				set_cats = [[cat for cat,freq in sorted(zip(cats,freqs), key=lambda pair: pair[1]) ] for cats,freqs in zip(set_cats,set_freqs)]
-				set_names = [[name for name,freq in sorted(zip(names,freqs), key=lambda pair: pair[1]) ] for names,freqs in zip(set_names,set_freqs)]
-				set_freqs = [sorted(freq) for freq in set_freqs]
+				new_set_fluxs = []
+				new_set_ferrs = []
+				new_set_cats = []
+				new_set_names = []
+				new_set_freqs = []
+
+				for set_ind,freqs in enumerate(set_freqs):
+					indexes = np.argsort(freqs)
+					new_set_fluxs.append(np.array(set_fluxs[set_ind])[indexes])
+					new_set_ferrs.append(np.array(set_fluxs[set_ind])[indexes])
+					new_set_cats.append(np.array(set_fluxs[set_ind])[indexes])
+					new_set_names.append(np.array(set_fluxs[set_ind])[indexes])
+					new_set_freqs.append(np.array(freqs)[indexes])
+
+				set_fluxs = new_set_fluxs
+				set_ferrs = new_set_ferrs
+				set_cats = new_set_cats
+				set_names = new_set_names
+				set_freqs = new_set_freqs
 
 			for i in np.arange(len(set_fluxs)):
 				freqs = set_freqs[i]

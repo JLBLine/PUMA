@@ -524,6 +524,18 @@ t_orderr = Column(name='e_original_DECJ2000',data=np.array(original_derrs),descr
 
 t.add_columns([t_name,t_base_name,t_upra,t_updec,t_uprerr,t_upderr,t_orra,t_ordec,t_orrerr,t_orderr])
 
+##Check to see if we have repeated frequencies between different catalogues
+##If we do, we need to make unique names for the flux columns
+all_freqs = []
+for freqs in cat_freqs:
+	for freq in freqs:
+		all_freqs.append(freq)
+
+if len(all_freqs) == len(np.unique(all_freqs)):
+	duplicates = False
+else:
+	duplicates = False
+
 ##For every catalogue in the match
 for cat in np.arange(len(num_freqs)):
 	##See how many frequencies that source has
@@ -532,8 +544,13 @@ for cat in np.arange(len(num_freqs)):
 	for freq in np.arange(num_freq):
 		fluxs = np.array([src.fluxs[cat][freq] for src in sources])
 		ferrs = np.array([src.ferrs[cat][freq] for src in sources])
-		t_flux = MaskedColumn(name='S_%d' %int(cat_freqs[cat][freq]),data=fluxs,description='Flux at %.1fMHz' %float(cat_freqs[cat][freq]),mask=fluxs==-100000.0, fill_value=None,unit='Jy',dtype=float)
-		t_ferr = MaskedColumn(name='e_S_%d' %int(cat_freqs[cat][freq]),data=ferrs,description='Flux error at %.1fMHz' %float(cat_freqs[cat][freq]),mask=ferrs==-100000.0, fill_value=None,unit='Jy',dtype=float)
+
+		if duplicates:
+			t_flux = MaskedColumn(name='S_%.1f' %float(cat_freqs[cat][freq]),data=fluxs,description='Flux at %.1fMHz' %float(cat_freqs[cat][freq]),mask=fluxs==-100000.0, fill_value=None,unit='Jy',dtype=float)
+			t_ferr = MaskedColumn(name='e_S_%.1f' %float(cat_freqs[cat][freq]),data=ferrs,description='Flux error at %.1fMHz' %float(cat_freqs[cat][freq]),mask=ferrs==-100000.0, fill_value=None,unit='Jy',dtype=float)
+		else:
+			t_flux = MaskedColumn(name='S_%.1f_%s' %(float(cat_freqs[cat][freq]),matched_cats[cat]),data=fluxs,description='Flux at %.1fMHz' %float(cat_freqs[cat][freq]),mask=fluxs==-100000.0, fill_value=None,unit='Jy',dtype=float)
+			t_ferr = MaskedColumn(name='e_S_%.1f_%s' %(float(cat_freqs[cat][freq]),matched_cats[cat]),data=ferrs,description='Flux error at %.1fMHz' %float(cat_freqs[cat][freq]),mask=ferrs==-100000.0, fill_value=None,unit='Jy',dtype=float)
 		t.add_columns([t_flux,t_ferr])
 
 
