@@ -330,7 +330,7 @@ def calculate_resids(matches):
 	return jstat_resids,params,bses,chi_resids
 
 def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
-	'''Takes a src_group() class that contains all group info. Indentifies which catalogue is repeated, combines
+	'''Takes a src_group() class that contains all group info. Identifies which catalogue is repeated, combines
 	the fluxes and fits a new line. Returns the reduced frequency list, the combined flux and flux error
 	arrays, as well as the line_fit object and residuals'''
 	##Find cat names of all accepted sources
@@ -347,6 +347,14 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 	temp_freqs = [src_all.freqs[i] for i in np.arange(len(src_all.freqs)) if src_all.cats[i] not in repeated_cats]
 	temp_fluxs = [src_all.fluxs[i] for i in np.arange(len(src_all.fluxs)) if src_all.cats[i] not in repeated_cats]
 	temp_ferrs = [src_all.ferrs[i] for i in np.arange(len(src_all.ferrs)) if src_all.cats[i] not in repeated_cats]
+
+	##src_g.matched names list all matched catalogues and names - needed for adding matched names
+	##to final catalogue. Add anything that isn't the base source or a repeated source
+	##here, because they will be in all combinations
+	##don't include the base source (hence [1:] in loop)
+	for cat in src_all.cats[1:]:
+		if cat not in repeated_cats:
+			src_g.matched_names.append((cat,src_all.names[src_all.cats.index(cat)]))
 
 	#print temp_freqs
 	#print temp_fluxs
@@ -370,8 +378,6 @@ def combine_flux(src_all,src_g,accepted_inds,plot,num_matches):
 		num_of_repeat = [i for i in np.arange(len(src_all.names)) if (src_all.cats[i]==repeat_cat) and (i in accepted_inds)]
 		num_of_repeats.append(num_of_repeat)
 
-	#print src_all.cats
-	#print repeated_cats
 	##For each repeated catalogue:
 	for repeat_cat in repeated_cats:
 		##Find the frequency/ies of repeated cat
