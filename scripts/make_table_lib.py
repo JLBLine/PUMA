@@ -214,7 +214,7 @@ def get_allinfo(all_info):
 
         ##If not, work out how many freqs there are and append to lists
         else:
-            extra = (len(info)-14) / 3
+            extra = (len(info)-14) // 3
             freqs = []
             fluxs = []
             ferrs = []
