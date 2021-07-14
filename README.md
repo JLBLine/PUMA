@@ -33,9 +33,6 @@ There are a few `python` dependencies, which are listed in `requirements.txt`, w
 pip --install -r requirements.txt
 ```
 
-
-sudo apt install default-jre
-
 ## `PUMA` Installation
 
 To download, simply git clone with the following command:
