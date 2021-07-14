@@ -8,6 +8,8 @@ git clone https://github.com/JLBLine/PUMA.git
 export PUMA_DIR=*path-to-you-PUMA-directory*
 export PATH=$PUMA_DIR/scripts:$PATH
 
+##You'll also need to install stilts somewhere, and add it to the $PATH so PUMA can find it. See the README for information on stilts
+
 ##The example bash scripts in $PUMA_DIR/examples use the $PUMA_DIR variable, so
 they will work out of the box if you follow the above, as well as heading to
 $PUMA_DIR/original_cats, and unpacking the catalogues:

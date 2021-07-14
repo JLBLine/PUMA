@@ -11,6 +11,11 @@ try:
 except ImportError:
     from astropy.io import fits
 from scipy.stats import mode
+from distutils.spawn import find_executable
+
+if find_executable('stilts') == None:
+    sys.exit('Could not find `stilts`. It must be installed and on the PATH to use cross_match.py. Exiting now')
+
 
 parser = optparse.OptionParser()
 

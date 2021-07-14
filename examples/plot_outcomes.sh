@@ -6,5 +6,6 @@ plot_outcomes.py --matched_cats=mwacs,vlssr,mrc,sumss,nvss \
 	--prob_thresh=0.8,0.95 \
 	--epsilon_thresh=0.1 --chi_thresh=10 \
 	--resolution=00:03:00 --split=00:02:00 \
-	--num_catalogues=5 --num_combinations=4
+	--num_catalogues=5 --num_combinations=4 \
+	--write=10
 	

@@ -228,8 +228,8 @@ def make_left_plots(fig,main_dims,spec_dims,ra_main,dec_main):
     ##Create bottom left plot with log-log axes - set the error bars to plot
     ##even if they go off the edge of the plot
     ax_spectral = fig.add_axes(spec_dims)
-    ax_spectral.set_xscale("log",nonposx='clip')
-    ax_spectral.set_yscale("log",nonposy='clip')
+    ax_spectral.set_xscale("log",nonpositive='clip')
+    ax_spectral.set_yscale("log",nonpositive='clip')
 
     return ax_main,ax_spectral,tr_fk5,wcs
 
@@ -349,8 +349,8 @@ def scale_spectral(all_fluxs,all_freqs,ax_spectral):
     ax_spectral.xaxis.grid(True, which='minor',linestyle='dashed',alpha=0.4)
     ax_spectral.yaxis.grid(True, which='minor',linestyle='dashed',alpha=0.4)
 
-    ax_spectral.set_xticklabels([],which='minor')
-    ax_spectral.set_yticklabels([],which='minor')
+    ax_spectral.set_xticklabels([],minor=True)
+    ax_spectral.set_yticklabels([],minor=True)
 
     ax_spectral.xaxis.set_minor_formatter(NullFormatter())
     ax_spectral.yaxis.set_minor_formatter(NullFormatter())
