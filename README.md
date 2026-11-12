@@ -1,5 +1,9 @@
 # PUMA
 
+> [!IMPORTANT]
+> PUMA is now being modernised and maintained here: https://gitlab.com/ska-telescope/ssc/ska-ssc-low-puma \
+> This repo is no longer maintained.
+
 The Positional Update and Matching Algorithm (PUMA) arose from the need for accurate foreground models for calibration of low radio frequency interferometric data. It was conceived to leverage the positional accuracy of higher frequency catalogues, whilst using lower frequency catalogues to obtain accurate spectral energy distributions (SEDs). The difficulty in cross matching multiple surveys is the varying instrument parameters for each survey such as angular resolution and sensitivity, as well changing morphologies of sources with frequency. PUMA initially uses a Bayesian positional probability match based on [Budavari & Szalay, 2008](https://iopscience.iop.org/article/10.1086/587156), to identify any possible matches. It then uses the fact that at low radio frequencies, most SEDs are expected to be approximately linear in log log space. PUMA uses this when higher resolution catalogues report multiple possible matched components, by adding the flux of the higher resolution sources and testing for linearity.
 
 For details on the algorithms and an example application, see [Line et al. 2017](https://doi.org/10.1017/pasa.2016.58).
